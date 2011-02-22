@@ -1,0 +1,10 @@
+useDynLib("movMF")
+
+export("movMF", "dmovMF", "rmovMF")
+
+S3method("coef", "movMF")
+S3method("logLik", "movMF")
+S3method("predict", "movMF")
+S3method("print", "movMF")
+
+S3method("print", "rmovMF")
