@@ -1,6 +1,7 @@
 \name{movMF_distribution}
 \alias{dmovMF}
 \alias{rmovMF}
+\alias{vMF}
 \title{Mixtures of von Mises-Fisher Distributions}
 \description{
   Density and random number generation for finite mixtures of von

@@ -28,6 +28,8 @@ movMF(x, k, control = list(), ...)
   \item{theta}{a matrix with rows giving the fitted parameters of the
     mixture components.}
   \item{alpha}{a numeric vector with the fitted mixture probabilities.}
+  See \link{vMF} for the employed parametrization of the von
+  Mises-Fisher distribution.
 }
 \details{
   \code{movMF} returns an object of class \code{"movMF"} representing
@@ -36,14 +38,14 @@ movMF(x, k, control = list(), ...)
   \code{\link{logLik}}, \code{\link{print}} and \code{\link{predict}}.
   \code{\link{predict}} has an extra \code{type} argument with possible
   values \code{"class_ids"} (default) and \code{"memberships"} for
-  indicating hard or soft prediction.
+  indicating hard or soft prediction, respectively.
   
   The mixture of von Mises-Fisher distributions is fitted using EM
   variants as specified by control option \code{E} (specifying the
   E-step employed), with possible values \code{"softmax"} (default),
   \code{"hardmax"} or \code{"stochmax"} where the first two implement
   algorithms soft-moVMF and hard-moVMF of Banerjee et al (2005).  For
-  \code{"stochmax"} class assignments are drawn from the posteriors for
+  \code{"stochmax"}, class assignments are drawn from the posteriors for
   each observation in the E-step as outlined as SEM in Celeux and
   Govaert (1992). The stopping criterion for this algorithm is by
   default changed to not check for convergence (logical control option
@@ -52,21 +54,28 @@ movMF(x, k, control = list(), ...)
 
   In the M-step, the parameters \eqn{\theta} of the respective component
   distributions are estimated via maximum likelihood, which is
-  accomplished by taking \eqn{\theta} proportional to the sample mean
-  \eqn{\bar{x}}{xbar} with length \eqn{\kappa} solving the equation 
-  \eqn{A_d(\kappa) = \|\bar{x}\|}{A_d(kappa) = ||xbar||}, where
-  \eqn{A_d(\kappa) = I_{d/2}(\kappa) / I_{d/2-1}(\kappa)}
-  with \eqn{I} the modified Bessel function of the first kind.  Via
-  control argument \code{kappa}, one can specify how to (approximately)
-  solve these equations.  Method \code{"Banerjee_et_al_2005"} uses the
-  approximation of Banerjee et al (2005), \code{"Tanabe_et_al_2007"} the
-  fixed-point iteration of Tanabe et al (2007), \code{"Sra_2011"} uses
-  two Newton steps as suggested in Sra (2011), \code{"uniroot"} a
-  straightforward call to \code{\link{uniroot}}, and finally
-  \code{"Newton"} (default) uses a full Newton algorithm.  The
-  lower-cased version of the given \code{kappa} specification is matched
-  against the lower-cased names of the available methods using
-  \code{\link{pmatch}}.
+  accomplished by taking \eqn{\theta} proportional to suitable weighted
+  sample means \eqn{\bar{x}}{xbar}, with length \eqn{\kappa} solving the
+  equation \eqn{A_d(\kappa) = \|\bar{x}\|}{A_d(kappa) = ||xbar||}, where
+  \eqn{A_d(\kappa) = I_{d/2}(\kappa) / I_{d/2-1}(\kappa)} with \eqn{I}
+  the modified Bessel function of the first kind.  Via control argument
+  \code{kappa}, one can specify how to (approximately) solve these
+  equations, and whether a common (possibly given) length \eqn{\kappa}
+  should be employed.  If \code{kappa} is a number, it gives a common
+  length to be employed.  If it is a character string, it specified the
+  method to be used for solving the \eqn{\kappa} equation.  Method
+  \code{"Banerjee_et_al_2005"} uses the approximation of Banerjee et al
+  (2005), \code{"Tanabe_et_al_2007"} the fixed-point iteration of Tanabe
+  et al (2007), \code{"Sra_2012"} uses two Newton steps as suggested in
+  Sra (2012), \code{"uniroot"} a straightforward call to
+  \code{\link{uniroot}}, and finally \code{"Newton"} (default) uses a
+  full Newton algorithm.  The lower-cased version of the given
+  \code{kappa} specification is matched against the lower-cased names of
+  the available methods using \code{\link{pmatch}}.  Finally, to
+  indicate using a common (but not given) \eqn{kappa} for all component
+  distributions, \code{kappa} should be a list with element \code{common
+  = TRUE} (and optionally a character string giving the estimation
+  method).
 
   Additional control parameters are as follows.
 
@@ -80,6 +89,11 @@ movMF(x, k, control = list(), ...)
       significant improvement can be made.  Defaults to
       \code{sqrt(.Machine$double.eps)}.
     }
+    \item{\code{ids}}{either a vector of class memberships or
+      \code{TRUE} which implies that the class memberships are obtained
+      from the attribute named \code{"z"} of the input data; these class
+      memberships are used for initializing the EM algorithm and the
+      algorithm is stopped after the first iteration.}
     \item{\code{start}}{a specification of the starting values to be
       employed.  Can be a list of matrices giving the memberships of
       objects to components, or of vectors giving component ids
@@ -123,8 +137,7 @@ movMF(x, k, control = list(), ...)
 
     \item{\code{verbose}}{a logical indicating whether to provide
       some output on algorithmic progress.
-      Defaults to \code{getOption("verbose")}.
-    }
+      Defaults to \code{getOption("verbose")}.}
   }
 
   One popular application context of mixtures of von Mises-Fisher
@@ -151,12 +164,13 @@ movMF(x, k, control = list(), ...)
   A Classification EM algorithm for clustering and two stochastic
   versions.
   \emph{Computational Statistics & Data Analysis}, \bold{14}, 315--332.
-  doi: 10.1016/0167-9473(92)90042-E
+  doi: 10.1016/0167-9473(92)90042-E.
    
-  S. Sra (2011).
+  S. Sra (2012).
   A short note on parameter approximation for von Mises-Fisher
   distributions: and a fast implementation of \eqn{I_s(x)}.
-  \emph{Computational Statistics}, to appear.
+  \emph{Computational Statistics}, \bold{27}, 177--190.
+  doi: 10.1007/s00180-011-0232-x.
 
   A. Tanabe, K. Fukumizu, S. Oba, T. Takenouchi, and S. Ishii.
   Parameter estimation for von Mises-Fisher distributions.
@@ -182,4 +196,10 @@ y2 <- movMF(x, 2, nruns = 10)
 y2
 ## Compare the fitted classes to the true ones:
 table(True = attr(x, "z"), Fitted = predict(y2))
+## To use a common kappa:
+y2cv <- movMF(x, 2, nruns = 10, kappa = list(common = TRUE))
+## To use a common kappa fixed to the true value of 4:
+y2cf <- movMF(x, 2, nruns = 10, kappa = 4)
+## Comparing solutions via BIC:
+sapply(list(y2, y2cf, y2cv), BIC)
 }

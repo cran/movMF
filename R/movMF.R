@@ -6,6 +6,7 @@ function(x, k, control = list(), ...)
     ## Be nice a la David.
     control <- c(control, list(...))
 
+    if(missing(k)) k <- NULL
     ## Normalize data just in case.
     x <- skmeans:::row_normalize(x)
 
@@ -18,11 +19,11 @@ function(x, k, control = list(), ...)
     maxiter <- control$maxiter
     if(is.null(maxiter))
         maxiter <- 100L
-    
+
     reltol <- control$reltol
     if(is.null(reltol))
         reltol <- sqrt(.Machine$double.eps)
-    
+
     verbose <- control$verbose
     if(is.null(verbose))
         verbose <- getOption("verbose")
@@ -47,29 +48,57 @@ function(x, k, control = list(), ...)
                    function(G, g)
                    .posterior_from_ids(max.col(G), ncol(G)),
                    function(G, g)
-                   t(apply(exp(G - g), 1, function(prob) rmultinom(1, 1, prob))))
+                   t(apply(exp(G - g), 1,
+                           function(prob) rmultinom(1, 1, prob))))
 
-    kappa_estimators <-
+    kappa_solvers <-
         c("Banerjee_et_al_2005",
           "Tanabe_et_al_2007",
-          "Sra_2011",
+          "Sra_2012",
           "uniroot",
           "Newton")
     kappa <- control$kappa
-    if(is.null(kappa))
-        do_kappa <- function(Rbar)
-            do_kappa_Newton(Rbar, d)
-    else {
+    if(is.numeric(kappa)) {
+        ## CASE A: Use a common given value of kappa.
+        kappa_given <- kappa
+        do_kappa <- function(norms, alpha)
+            rep.int(kappa_given, length(alpha))
+        df_kappa <- function(k) 0L
+    } else {
         kappa <- as.list(kappa)
-        kname <- kappa[[1L]]
-        kargs <- kappa[-1L]
-        pos <- pmatch(tolower(kname), tolower(kappa_estimators))
-        if(is.na(pos))
-            stop("Invalid kappa estimator.")
-        kappa <- kappa_estimators[pos]
-        kfun <- get(sprintf("do_kappa_%s", kappa))
-        do_kappa <- function(Rbar)
-            do.call(kfun, c(list(Rbar, d), kargs))
+        ## Should a common value be used or not?
+        pos <- match("common", names(kappa), nomatch = 0L)
+        if(pos > 0L) {
+            use_common_kappa <- identical(kappa[[pos]], TRUE)
+            kappa <- kappa[-pos]
+        } else {
+            use_common_kappa <- FALSE
+        }
+        if(length(kappa)) {
+            ## Solver specifications.
+            kname <- kappa[[1L]]
+            kargs <- kappa[-1L]
+            pos <- pmatch(tolower(kname), tolower(kappa_solvers))
+            if(is.na(pos))
+                stop("Invalid kappa solver.")
+            kappa <- kappa_solvers[pos]
+            kfun <- get(sprintf("solve_kappa_%s", kappa))
+            solve_kappa <- function(Rbar)
+                do.call(kfun, c(list(Rbar, d), kargs))
+        } else {
+            ## Default solver.
+            solve_kappa <- function(Rbar)
+                solve_kappa_Newton(Rbar, d)
+        }
+        if(use_common_kappa) {
+            do_kappa <- function(norms, alpha) 
+                rep.int(solve_kappa(sum(norms) / n), length(alpha))
+            df_kappa <- function(k) 1L
+        } else {
+            do_kappa <- function(norms, alpha)
+                solve_kappa(norms / (n * alpha))
+            df_kappa <- function(k) k
+        }
     }
 
     ## Allow to specify "known" ids for fitting the respective movMF
@@ -87,16 +116,25 @@ function(x, k, control = list(), ...)
         do_P <- function(G, g) P0
         start  <- list(P0)
         maxiter <- 1L
+        if(!is.null(control$nruns))
+            warning("control argument nruns ignored because ids are specified")
+        if(!is.null(control$start))
+            warning("control argument start ignored because ids are specified")
     } else {
         ## Initialization.
         start <- control$start
+        nruns <- control$nruns
         if(is.null(start)) {
-            nruns <- control$nruns
             if(is.null(nruns))
                 nruns <- 1L
-            start <- rep.int("p", nruns)
+            start <- as.list(rep.int("p", nruns))
         }
-        start <- movMF_init(x, k, start)
+        else {
+            if(!is.list(start))
+                start <- list(start)
+            if(!is.null(nruns))
+                warning("control argument nruns ignored because start is specified")
+        }
     }
     
     nruns <- length(start)
@@ -115,63 +153,90 @@ function(x, k, control = list(), ...)
     opt_old <- opt <- NULL
 
     run <- 1L
-
+    logLiks <- vector(length = nruns)
+    
     if(verbose && (nruns > 1L))
         message(gettextf("Run: %d", run))
 
     repeat {
         G <- NULL
-        P <- start[[run]]
+        P <- movMF_init(x, k, start[[run]])
         L_old <- -Inf
-        iter <- 1L
-        
-        while(iter <= maxiter) {
+        iter <- 0L
+        logLiks[run] <- tryCatch({
+            while(iter < maxiter) {
             ## M step.
-            alpha <- colMeans(P)
-            while(any(alpha < minalpha)) {
-                if(verbose) 
-                    message("*** Removing one component ***")
-                nok <- which.min(alpha)
-                P <- P[, -nok, drop = FALSE]
-                P <- do_P(P, log_row_sums(P))
-                alpha <- colSums(P) / n
-                if(!is.null(G))
-                    L_old <- sum(log_row_sums(G[, -nok, drop = FALSE]))
-            }
-            M <- skmeans:::g_crossprod(P, x)
-            norms <- skmeans:::row_norms(M)
-            Rbar <- norms / (n * alpha)
-            M <- M / norms
-            kappa <- do_kappa(Rbar)
-            
-            ## E step.
-            G <- cadd(skmeans:::g_tcrossprod(x, kappa * M),
-                      log(alpha) -  lH(kappa, s))
-            g <- log_row_sums(G)
-            L_new <- sum(g)
-            if(verbose && (iter %% verbose == 0))
-                message(gettextf("Iteration: %d *** L: %g", iter, L_new))
-            if(converge) {
-                if(abs(L_old - L_new) < reltol * (abs(L_old) + reltol)) {
-                    L_old <- L_new     
-                    break
+                alpha <- colMeans(P)
+                while(any(alpha < minalpha)) {
+                    if(verbose) 
+                        message("*** Removing one component ***")
+                    nok <- which.min(alpha)
+                    P <- P[, -nok, drop = FALSE]
+                    P <- do_P(P, log_row_sums(P))
+                    alpha <- colMeans(P)
+                    if(!is.null(G))
+                        L_old <- sum(log_row_sums(G[, -nok, drop = FALSE]))
                 }
-                L_old <- L_new     
-            } else if(L_new > L_old) {
-                L_old <- L_new
-                opt_old <- .movMF_object(kappa * M, alpha, L_old, P, iter)
-            }
+                if(any(alpha == 0))
+                    stop("Cannot handle empty components")
+                M <- skmeans:::g_crossprod(P, x)
+                norms <- skmeans:::row_norms(M)
+                M <- M / norms
+                ## If a cluster contains only identical observations,
+                ## Rbar = 1.
+                kappa <- do_kappa(norms, alpha)
             
-            P <- do_P(G, g)
-            iter <- iter + 1L
-        }
-        
-        if(L_old > L_opt) {
-            opt <- if(converge)
-                .movMF_object(kappa * M, alpha, L_old, P, iter)
-            else opt_old
-            L_opt <- L_old
-        }
+                ## E step.
+                G <- cadd(skmeans:::g_tcrossprod(x, kappa * M),
+                          log(alpha) -  lH(kappa, s))
+                g <- log_row_sums(G)
+                L_new <- sum(g)
+                if(verbose && (iter %% verbose == 0))
+                    message(gettextf("Iteration: %d *** L: %g", iter, L_new))
+                if(converge) {
+                    if(abs(L_old - L_new) < reltol * (abs(L_old) + reltol)) {
+                        L_old <- L_new     
+                        break
+                    }
+                    L_old <- L_new     
+                } else if(L_new > L_old) {
+                    L_old <- L_new
+                    opt_old <- .movMF_object(kappa * M, alpha, L_old, P, iter)
+                }
+            
+                P <- do_P(G, g)
+                iter <- iter + 1L
+            }
+            if(L_old > L_opt) {
+                opt <- if(converge)
+                    .movMF_object(kappa * M, alpha, L_old, P, iter)
+                else opt_old
+                L_opt <- L_old
+            }
+            L_old
+        }, error = function(e) {
+            if(verbose) {
+                ## <NOTE>
+                ## Reporting problems is a bit of a mess in cases the
+                ## above explicitly called stop(), in which case the
+                ## condition call is
+                ##   doTryCatch(return(expr), name, parentenv, handler)
+                ## Ideally, in these cases we would throw suitably
+                ## classed conditions, and provide call/message methods
+                ## for them.
+                call <- conditionCall(e)
+                msg <- conditionMessage(e)
+                s <- if(!is.null(call) &&
+                        (substring(s <- deparse(call)[1L], 1L, 10L) !=
+                         "doTryCatch"))
+                    sprintf("Error in %s: %s", s, msg)
+                else
+                    sprintf("Error: %s", msg)
+                message(sprintf("EM algorithm did not converge:\n%s", s))
+                ## </NOTE>
+            }
+            NA
+        })
         
         if(run >= nruns) break
         
@@ -181,15 +246,29 @@ function(x, k, control = list(), ...)
     }
 
     ## Compute log-likelihood.
+    if(is.null(opt))
+        stop("the EM algorithm did not converge for any run")
     ll <- L(x, opt$theta, opt$alpha)
     ## Add the "degrees of freedom" (number of (estimated) parameters in
-    ## the model): \mu: k * (d - 1) (as constrained to unit length),
-    ## \kappa: k, \alpha: k - 1 (as constrained to unit sum), for a
-    ## total of (d + 1) k - 1
-    attr(ll, "df") <- (d + 1L) * k - 1L
+    ## the model): with k the number of classes actually used,
+    ##   \mu: k * (d - 1) (as constrained to unit length),
+    ##   \kappa: 0, 1 or k depending on whether we use a common given,
+    ##        a common (but not given) kappa, or individual kappas.
+    ##   \alpha: k - 1    (as constrained to unit sum),
+    ## for a total of
+    ##   k d - 1 + df_kappa(k)
+    k <- length(alpha)
+    attr(ll, "df") <- d * k - 1L + df_kappa(k)
+    attr(ll, "nobs") <- n
     class(ll) <- "logLik"
     opt$ll <- ll
-
+    opt$details <- list(reltol = reltol,
+                        iter = c(iter = opt$iter, maxiter = maxiter),
+                        logLiks = logLiks,
+                        E = E,
+                        kappa = control$kappa,
+                        minalpha = minalpha,
+                        converge = converge)
     opt
 }
 
@@ -223,9 +302,14 @@ function(object, ...)
 
 
 logLik.movMF <-
-function(object, ...)
+function(object, newdata, ...)
 {
-    object$ll
+  if (missing(newdata))
+    return(object$ll)
+  else {
+    newdata <- skmeans:::row_normalize(newdata)
+    return(L(newdata, object$theta, object$alpha))
+  }
 }
 
 predict.movMF <-
@@ -262,50 +346,31 @@ movMF_init <-
 function(x, k, start)
 {
     if(is.character(start)) {
-        if(any(is.na(match(start, c("p", "i", "S", "s")))))
-            stop(gettextf("Invalid control option 'start'"))
-        out <- vector("list", length(start))
-        pos <- which(start %in% c("p", "S", "s"))
-        if(length(pos)) {
+        if(start %in% c("p", "S", "s")) {
             ## <FIXME>
             ## How should we turn initial centroids into a posterior?
             ## For now, do fuzzy classification with m = 2 and cosine
             ## dissimilarity.
-            out[pos] <-
-                lapply(skmeans:::.skmeans_init_for_normalized_x(x, k,
-                                                                start[pos]),
-                       function(M) {
-                           clue:::.memberships_from_cross_dissimilarities(1 -
-                                                                          skmeans:::g_tcrossprod(x,
-                                                                                                 M),
-                                                                          2)
-                       })
+            M <- skmeans:::.skmeans_init_for_normalized_x(x, k, start)
+            D <- pmax(1 - skmeans:::g_tcrossprod(x, M), 0)
+            clue:::.memberships_from_cross_dissimilarities(D, 2)
             ## </FIXME>
         }
-        pos <- which(start == "i")
-        if(length(pos)) {
-            out[pos] <-
-                replicate(length(pos), {
-                    ## Initialize by choosing random class ids, and
-                    ## building a binary posterior from these.
-                    ids <- sample.int(k, nrow(x), replace = TRUE)
-                    .posterior_from_ids(ids, k)
-                })
+        else if(start == "i") {
+            ## Initialize by choosing random class ids, and building a
+            ## binary posterior from these.
+            ids <- sample.int(k, nrow(x), replace = TRUE)
+            .posterior_from_ids(ids, k)
         }
-        out
-    } else {
-        if(!is.list(start))
-            start <- list(start)
-        lapply(start,
-               function(s) {
-                   if(!is.null(dim(s)))
-                       s
-                   else {
-                       ## A vector of class ids, hopefully.
-                       ids <- match(s, unique(s))
-                       .posterior_from_ids(ids, k)
-                   }
-               })
+        else 
+            stop(gettextf("Invalid control option 'start'"))
+    }
+    else if(!is.null(dim(start)))
+        start
+    else {
+        ## A vector of class ids, hopefully.
+        ids <- match(start, sort(unique(start)))
+        .posterior_from_ids(ids, k)
     }
 }
 
@@ -335,7 +400,7 @@ function(A, x)
 log_row_sums <-
 function(x)
 {
-    M <- x[cbind(seq_len(nrow(x)), max.col(x))]
+    M <- x[cbind(seq_len(nrow(x)), max.col(x, "first"))]
     M + log(rowSums(exp(x - M)))
 }
 
@@ -343,20 +408,24 @@ function(x)
 
 ## <NOTE>
 ## Work only for 0 <= Rbar < 1.
-## We could try to additionally implement do_kappa(1, ...) = Inf.
+## We could try to additionally implement solve_kappa(1, ...) = Inf.
 ## But the utilities are internal only and the other functions cannot
 ## gracefully handle kappa = Inf anyways ...
 ## </NOTE>
 
-do_kappa_Banerjee_et_al_2005 <-
+solve_kappa_Banerjee_et_al_2005 <-
 function(Rbar, d)
 {
+    if(any(Rbar >= 1))
+        stop("Cannot handle infinite concentration parameters")
     Rbar * (d - Rbar ^ 2) / (1 - Rbar ^ 2)
 }
 
-do_kappa_Tanabe_et_al_2007 <-
+solve_kappa_Tanabe_et_al_2007 <-
 function(Rbar, d, c = 1, tol = 1e-6)
 {
+    if(any(Rbar >= 1))
+        stop("Cannot handle infinite concentration parameters")
     old <- Rbar * (d - c) / (1 - Rbar ^ 2)
     repeat {
         kappa <- old * Rbar / A(old, d)
@@ -366,20 +435,22 @@ function(Rbar, d, c = 1, tol = 1e-6)
     kappa
 }
 
-do_kappa_Sra_2011 <-
+solve_kappa_Sra_2012 <-
 function(Rbar, d)
 {
     ## Initialize using the Banerjee et al approximation.
-    kappa <- do_kappa_Banerjee_et_al_2005(Rbar, d)
+    kappa <- solve_kappa_Banerjee_et_al_2005(Rbar, d)
     ## Perform two Newton steps.
     kappa <- kappa - (A(kappa, d) - Rbar) / Aprime(kappa, d)
     kappa <- kappa - (A(kappa, d) - Rbar) / Aprime(kappa, d)
     kappa
 }
 
-do_kappa_uniroot <-
+solve_kappa_uniroot <-
 function(Rbar, d, tol = 1e-6)
 {
+    if(any(Rbar >= 1))
+        stop("Cannot handle infinite concentration parameters")
     sapply(Rbar,
            function(r)
            uniroot(function(kappa) A(kappa, d) - r,
@@ -387,9 +458,11 @@ function(Rbar, d, tol = 1e-6)
                    tol = tol)$root)
 }
 
-do_kappa_Newton <-
+solve_kappa_Newton <-
 function(Rbar, d, c = 1, tol = 1e-6, maxiter = 100)
 {
+    if(any(Rbar >= 1))
+        stop("Cannot handle infinite concentration parameters")
     kappa_0 <- Inf
     kappa <- Rbar * (d - c) / (1 - Rbar ^ 2)
     A <- A(kappa, d) - Rbar
@@ -492,7 +565,7 @@ function(kappa, d, method = c("CF", "RH"))
     d <- rep(d, length.out = n)
 
     s <- d / 2 - 1
-    y <- kappa / d
+    y <- kappa / 2
     
     method <- match.arg(method)
     if(method == "CF") {
@@ -543,8 +616,17 @@ function(x, theta, alpha)
 ## Utility for computing a binary posterior from the class ids.
 
 .posterior_from_ids <-
-function(ids, k)
+function(ids, k = NULL)
 {
+    if(is.null(k))
+        k <- max(ids)
+    else if(max(ids) < k) {
+        k <- max(ids)
+        warning("due to initialization number of components reduced to ",
+                k)
+    }
+    else if(max(ids) > k)
+        stop("number of components k smaller than those provided for initialization")
     n <- length(ids)
     P <- matrix(0, n, k)
     P[cbind(seq_len(n), ids)] <- 1

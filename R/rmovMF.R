@@ -35,7 +35,7 @@ function(n, theta, alpha = 1)
     alpha <- alpha / sum(alpha)
 
     y <- matrix(0, n, ncol(theta))
-    ind <- as.numeric(cut(runif(n), c(0, cumsum(alpha))))
+    ind <- as.numeric(cut(runif(n), c(0, cumsum(alpha)), include.lowest = TRUE))
     pos <- split(seq_len(n), ind)
     nms <- names(pos)
     for(i in seq_along(pos)) {

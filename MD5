@@ -1,0 +1,10 @@
+ed8316a0c3b5e6f7b22e30dcecdcd643 *DESCRIPTION
+fb90ad2a9d35f2191b8ab772ed95a7ff *NAMESPACE
+26cf8651b3dab154a7be073b11b7dcf6 *R/dmovMF.R
+e50cd6cced750dc8099ac1f6765f75fe *R/movMF.R
+fa3c3d60df22be1fbc671b90213af669 *R/rmovMF.R
+de2517973c7f3a528b287375200e0dd7 *man/movMF.Rd
+34c024e577c31a07e18e1f4b8c8c5bfd *man/movMF_distribution.Rd
+2ab78a4c77bee9ebdfe1b3dd0820a56c *src/mygcf.c
+3733e7bbbe11172373923afdc1127371 *src/mysum.c
+febd3e4b9aa8d2e5b7024b888e0b5475 *src/rW.c
