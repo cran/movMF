@@ -509,7 +509,7 @@ function(kappa, nu)
     ipn <- (nu > 0)
     ind <- ipk & !ipn
     if(any(ind)) {
-        y[ind] <- kappa[ind] - log(2 * pi * kappa[ind])
+        y[ind] <- kappa[ind] - log(2 * pi * kappa[ind]) / 2
     }
     ind <- ipk & ipn
     if(any(ind)) {
@@ -558,24 +558,26 @@ function(kappa, nu)
 ## A and A prime.
 
 A <-
-function(kappa, d, method = c("CF", "RH"))
+function(kappa, d, method = c("PCF", "GCF", "RH"))
 {
     n <- max(length(kappa), length(d))
     kappa <- rep(kappa, length.out = n)
     d <- rep(d, length.out = n)
 
-    s <- d / 2 - 1
-    y <- kappa / 2
-    
     method <- match.arg(method)
-    if(method == "CF") {
-        y <- y * .C("mygcf",
-                    n,
-                    as.double(kappa ^ 2 / 4),
-                    as.double(s + 1),
-                    y = double(n))$y
+    if(method == "PCF") {
+        .C("mycfP",
+           as.integer(n), as.double(kappa), as.double(d / 2),
+           y = double(n))$y
+    }
+    else if(method == "GCF") {
+        .C("mycfG",
+           as.integer(n), as.double(kappa), as.double(d / 2),
+           y = double(n))$y
     }
     else {
+        s <- d / 2 - 1
+        y <- kappa / d
         a <- lH_asymptotic(kappa, s + 1)
         ind <- (a <= 666)
         if(any(ind))
@@ -593,9 +595,10 @@ function(kappa, d, method = c("CF", "RH"))
         if(any(ind))
             y[ind] <- y[ind] *
                 exp(a[ind] - lH_asymptotic(kappa[ind], s))
+        if (any(y >= 1))
+          stop("RH evaluation gave infeasible values which are not in the range [0, 1)")
+        y
     }
-    
-    y
 }
 
 Aprime <-
