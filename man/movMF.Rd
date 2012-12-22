@@ -67,7 +67,8 @@ movMF(x, k, control = list(), ...)
   \code{"Banerjee_et_al_2005"} uses the approximation of Banerjee et al
   (2005), \code{"Tanabe_et_al_2007"} the fixed-point iteration of Tanabe
   et al (2007), \code{"Sra_2012"} uses two Newton steps as suggested in
-  Sra (2012), \code{"uniroot"} a straightforward call to
+  Sra (2012), \code{"Song_et_al_2012"} uses two Halley steps as
+  suggested in Song et al (2012), \code{"uniroot"} a straightforward call to
   \code{\link{uniroot}}, and finally \code{"Newton"} (default) uses a
   full Newton algorithm.  The lower-cased version of the given
   \code{kappa} specification is matched against the lower-cased names of
@@ -175,7 +176,12 @@ movMF(x, k, control = list(), ...)
   A. Tanabe, K. Fukumizu, S. Oba, T. Takenouchi, and S. Ishii.
   Parameter estimation for von Mises-Fisher distributions.
   \emph{Computational Statistics}, \bold{22}, 145--157.
-  doi: 10.1007/s00180-007-0030-7.  
+  doi: 10.1007/s00180-007-0030-7.
+
+  H. Song, J. Liu, and G. Wang.
+  High-order parameter approximation for von Mises-Fisher distributions.
+  \emph{Applied Mathematics and Computation}, \bold{218}, 11880--11890.
+  doi: 10.1016/j.amc.2012.05.050.
 }
 \examples{
 ## Generate and fit a "small-mix" data set a la Banerjee et al.

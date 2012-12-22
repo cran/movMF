@@ -1,4 +1,4 @@
-useDynLib("movMF")
+useDynLib("movMF", .registration = TRUE, .fixes = "C_")
 
 export("movMF", "dmovMF", "rmovMF")
 

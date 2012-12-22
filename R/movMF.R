@@ -51,16 +51,22 @@ function(x, k, control = list(), ...)
                    t(apply(exp(G - g), 1,
                            function(prob) rmultinom(1, 1, prob))))
 
+    nu <- if (is.null(control$nu)) 0 else control$nu
+    
     kappa_solvers <-
         c("Banerjee_et_al_2005",
           "Tanabe_et_al_2007",
           "Sra_2012",
+          "Song_et_al_2012",
           "uniroot",
           "Newton")
     kappa <- control$kappa
     if(is.numeric(kappa)) {
         ## CASE A: Use a common given value of kappa.
-        kappa_given <- kappa
+        if (length(kappa) > 1)
+          warning("only the first element of 'kappa' is used for a common given kappa")
+        kappa_given <- kappa[1]
+        use_common_kappa <- TRUE
         do_kappa <- function(norms, alpha)
             rep.int(kappa_given, length(alpha))
         df_kappa <- function(k) 0L
@@ -71,6 +77,9 @@ function(x, k, control = list(), ...)
         if(pos > 0L) {
             use_common_kappa <- identical(kappa[[pos]], TRUE)
             kappa <- kappa[-pos]
+            if (length(nu) > 1)
+              warning("only the first element of 'nu' is used for common kappa")
+            nu <- nu[1]
         } else {
             use_common_kappa <- FALSE
         }
@@ -92,11 +101,11 @@ function(x, k, control = list(), ...)
         }
         if(use_common_kappa) {
             do_kappa <- function(norms, alpha) 
-                rep.int(solve_kappa(sum(norms) / n), length(alpha))
+                rep.int(solve_kappa(sum(norms) / (n + nu)), length(alpha))
             df_kappa <- function(k) 1L
         } else {
             do_kappa <- function(norms, alpha)
-                solve_kappa(norms / (n * alpha))
+                solve_kappa(norms / (n * alpha + nu))
             df_kappa <- function(k) k
         }
     }
@@ -112,14 +121,16 @@ function(x, k, control = list(), ...)
         if(identical(ids, TRUE))
             ids <- attr(x, "z")         # Be nice for the case of data
                                         # simulated by rmovMF().
+        if (nrow(x) != length(ids))
+          stop("length of 'ids' needs to match the number of observations")
         P0 <- .posterior_from_ids(ids, k)
-        do_P <- function(G, g) P0
+        do_P <- function(G, g) G
         start  <- list(P0)
         maxiter <- 1L
         if(!is.null(control$nruns))
-            warning("control argument nruns ignored because ids are specified")
+            warning("control argument 'nruns' ignored because ids are specified")
         if(!is.null(control$start))
-            warning("control argument start ignored because ids are specified")
+            warning("control argument 'start' ignored because ids are specified")
     } else {
         ## Initialization.
         start <- control$start
@@ -133,7 +144,7 @@ function(x, k, control = list(), ...)
             if(!is.list(start))
                 start <- list(start)
             if(!is.null(nruns))
-                warning("control argument nruns ignored because start is specified")
+                warning("control argument 'nruns' ignored because 'start' is specified")
         }
     }
     
@@ -156,11 +167,17 @@ function(x, k, control = list(), ...)
     logLiks <- vector(length = nruns)
     
     if(verbose && (nruns > 1L))
-        message(gettextf("Run: %d", run))
+        message(gettextf("Run: %d", run),
+                domain = NA)
 
     repeat {
         G <- NULL
         P <- movMF_init(x, k, start[[run]])
+        if (!use_common_kappa) {
+          if (length(nu) > 1 & length(nu) != ncol(P))
+            warning("nu is changed to have length", ncol(P))
+          nu <- rep(nu, length.out = ncol(P))
+        }
         L_old <- -Inf
         iter <- 0L
         logLiks[run] <- tryCatch({
@@ -172,16 +189,18 @@ function(x, k, control = list(), ...)
                         message("*** Removing one component ***")
                     nok <- which.min(alpha)
                     P <- P[, -nok, drop = FALSE]
+                    if (!use_common_kappa)
+                      nu <- nu[-nok]
                     P <- do_P(P, log_row_sums(P))
                     alpha <- colMeans(P)
                     if(!is.null(G))
                         L_old <- sum(log_row_sums(G[, -nok, drop = FALSE]))
                 }
-                if(any(alpha == 0))
+                if(any(alpha == 0 & nu <= 0))
                     stop("Cannot handle empty components")
                 M <- skmeans:::g_crossprod(P, x)
                 norms <- skmeans:::row_norms(M)
-                M <- M / norms
+                M <- M / ifelse(norms > 0, norms, 1)
                 ## If a cluster contains only identical observations,
                 ## Rbar = 1.
                 kappa <- do_kappa(norms, alpha)
@@ -192,7 +211,9 @@ function(x, k, control = list(), ...)
                 g <- log_row_sums(G)
                 L_new <- sum(g)
                 if(verbose && (iter %% verbose == 0))
-                    message(gettextf("Iteration: %d *** L: %g", iter, L_new))
+                    message(gettextf("Iteration: %d *** L: %g",
+                                     iter, L_new),
+                            domain = NA)
                 if(converge) {
                     if(abs(L_old - L_new) < reltol * (abs(L_old) + reltol)) {
                         L_old <- L_new     
@@ -232,7 +253,9 @@ function(x, k, control = list(), ...)
                     sprintf("Error in %s: %s", s, msg)
                 else
                     sprintf("Error: %s", msg)
-                message(sprintf("EM algorithm did not converge:\n%s", s))
+                message(gettextf("EM algorithm did not converge:\n%s",
+                                 s),
+                        domain = NA)
                 ## </NOTE>
             }
             NA
@@ -242,12 +265,16 @@ function(x, k, control = list(), ...)
         
         run <- run + 1L
         if(verbose)
-            message(gettextf("Run: %d", run))
+            message(gettextf("Run: %d", run),
+                    domain = NA)
     }
 
     ## Compute log-likelihood.
     if(is.null(opt))
-        stop("the EM algorithm did not converge for any run")
+        stop("EM algorithm did not converge for any run")
+    k <- length(alpha)
+    dimnames(opt$theta)<- list(seq_len(k), colnames(x))
+    dimnames(opt$P)<- list(rownames(x), seq_len(k))
     ll <- L(x, opt$theta, opt$alpha)
     ## Add the "degrees of freedom" (number of (estimated) parameters in
     ## the model): with k the number of classes actually used,
@@ -257,7 +284,6 @@ function(x, k, control = list(), ...)
     ##   \alpha: k - 1    (as constrained to unit sum),
     ## for a total of
     ##   k d - 1 + df_kappa(k)
-    k <- length(alpha)
     attr(ll, "df") <- d * k - 1L + df_kappa(k)
     attr(ll, "nobs") <- n
     class(ll) <- "logLik"
@@ -363,7 +389,7 @@ function(x, k, start)
             .posterior_from_ids(ids, k)
         }
         else 
-            stop(gettextf("Invalid control option 'start'"))
+            stop("Invalid control option 'start'")
     }
     else if(!is.null(dim(start)))
         start
@@ -418,6 +444,7 @@ function(Rbar, d)
 {
     if(any(Rbar >= 1))
         stop("Cannot handle infinite concentration parameters")
+    
     Rbar * (d - Rbar ^ 2) / (1 - Rbar ^ 2)
 }
 
@@ -426,11 +453,12 @@ function(Rbar, d, c = 1, tol = 1e-6)
 {
     if(any(Rbar >= 1))
         stop("Cannot handle infinite concentration parameters")
+
     old <- Rbar * (d - c) / (1 - Rbar ^ 2)
     repeat {
-        kappa <- old * Rbar / A(old, d)
-        if(max(abs(kappa - old)) < tol) break
-        old <- kappa
+      kappa <- ifelse(old == 0, 0, old * (Rbar / A(old, d)))
+      if(max(abs(kappa - old)) < tol) break
+      old <- kappa
     }
     kappa
 }
@@ -441,8 +469,27 @@ function(Rbar, d)
     ## Initialize using the Banerjee et al approximation.
     kappa <- solve_kappa_Banerjee_et_al_2005(Rbar, d)
     ## Perform two Newton steps.
-    kappa <- kappa - (A(kappa, d) - Rbar) / Aprime(kappa, d)
-    kappa <- kappa - (A(kappa, d) - Rbar) / Aprime(kappa, d)
+    A <- A(kappa, d)
+    kappa <- kappa - (A - Rbar) / Aprime(kappa, d, A)
+    A <- A(kappa, d)
+    kappa <- kappa - (A - Rbar) / Aprime(kappa, d, A)
+    kappa
+}
+
+solve_kappa_Song_et_al_2012 <-
+function(Rbar, d)
+{
+    ## Initialize using the Banerjee et al approximation.
+    kappa <- solve_kappa_Banerjee_et_al_2005(Rbar, d)
+    ## Perform two Halley steps.
+    A <- A(kappa, d)
+    Adiff <- A - Rbar
+    Aprime <- Aprime(kappa, d, A)
+    kappa <- kappa - 2 * Adiff * Aprime / (2 * Aprime^2 - Adiff * Adoubleprime(kappa, d, A))
+    A <- A(kappa, d)
+    Adiff <- A - Rbar
+    Aprime <- Aprime(kappa, d, A)
+    kappa <- kappa - 2 * Adiff * Aprime / (2 * Aprime^2 - Adiff * Adoubleprime(kappa, d, A))
     kappa
 }
 
@@ -451,46 +498,148 @@ function(Rbar, d, tol = 1e-6)
 {
     if(any(Rbar >= 1))
         stop("Cannot handle infinite concentration parameters")
+    
+    nu <- d / 2 - 1
     sapply(Rbar,
-           function(r)
-           uniroot(function(kappa) A(kappa, d) - r,
-                   interval = r * (d - c(2, 0)) / (1 - r^2),
-                   tol = tol)$root)
+           function(r) {
+             interval <- c(Rinv_lower_Amos_bound(r, nu),
+                           Rinv_upper_Amos_bound(r, nu))
+             if (abs(diff(interval)) < tol)
+               mean(interval)
+             else 
+               uniroot(function(kappa) A(kappa, d) - r,
+                       interval = interval,
+                       tol = tol)$root})
 }
 
 solve_kappa_Newton <-
-function(Rbar, d, c = 1, tol = 1e-6, maxiter = 100)
+function(Rbar, d, tol = 1e-6, maxiter = 100)
 {
     if(any(Rbar >= 1))
         stop("Cannot handle infinite concentration parameters")
+    
     kappa_0 <- Inf
-    kappa <- Rbar * (d - c) / (1 - Rbar ^ 2)
-    A <- A(kappa, d) - Rbar
+    kappa <- Rinv_lower_Amos_bound(Rbar, d / 2 - 1)
+    A <- A(kappa, d)
+    Adiff <- A - Rbar
     n <- 0
-    while(((abs(A) >= tol) ||
+    while(((abs(Adiff) >= tol) ||
            (abs(kappa_0 - kappa) >= tol * (kappa_0 + tol)))
           && (n < maxiter)) {
         kappa_0 <- kappa
-        kappa <- kappa - A / Aprime(kappa, d)
-        A <- A(kappa, d) - Rbar
+        kappa <- kappa - Adiff / Aprime(kappa, d, A)
+        A <- A(kappa, d)
+        Adiff <- A - Rbar
         n <- n + 1
     }
     kappa
 }
 
-## Utility function for computing the normalization constant actually
-## used (see the implementation notes).
+## Utility functions for computing A, H and its logarithm (see the
+## implementation notes).
+##
+## With R_\nu = I_{\nu+1} / I_\nu the commonly considered modified
+## Bessel function ratio and
+##
+##   log(H_\nu)(\kappa) = \int_0^\kappa R_\nu(t) dt
+##
+## (so that (log(H_\nu))' = R_\nu and H_\nu(0) = 1), we have
+##
+##   A_d = I_{d/2} / I_{d/2-1} = R_{d/2-1}
+##
+## and
+##
+##   log(f(x|theta)) = theta' x - log(H_{d/2-1})(\|theta\|).
+##
+## For R_\nu we have Amos-type bounds
+##
+##   G_{\alpha,\beta}(t) = t / (alpha + sqrt(t^2 + beta^2))
+##
+## where G_{\nu+1/2,\nu+3/2} is the uniformly best lower Amos-type
+## bound, whereas there is no uniformly optimal upper bound, with
+## G_{\nu,\nu+2} and G_{\nu+1/2,beta_SS(\nu)} being second-order exact
+## and optimal at 0 and infinity, respectively, where
+##
+##   beta_SS(\nu) = sqrt((\nu+1/2)(\nu+3/2)).
+##
+## Inverses and anti-derivatives of G are given by
+##
+##   G_{\alpha,\beta}^{-1}(\rho)
+##     = \frac{\rho}{1 - \rho^2}
+##       (\alpha + \sqrt{\alpha^2 \rho^2 + \beta^2 (1 - \rho^2)})
+##
+## and
+##
+##   S_{\alpha,\beta}(\kappa)
+##     = \sqrt{\kappa^2 + \beta^2} - \beta
+##       - \alpha \log(\alpha + \sqrt{\kappa^2 + \beta^2})
+##       + \alpha \log(\alpha + \beta).
+##
+## We use
+##
+##   \max(G_{\nu,\nu+2}^{-1}, G_{\nu+1/2,\beta_{SS}(\nu)}^{-1})
+##
+## as lower bound and approximation for R_\nu^{-1},
+##
+##   G_{\nu+1/2,\nu+3/2}^{-1}
+##
+## as upper bound for R_{\nu}^{-1}, and
+##
+##   \min(S_{\nu,\nu+2}, S_{\nu+1/2,\beta_{SS}(\nu)})
+##
+## as approximation for \log(H_\nu).
+
+beta_SS <-
+function(nu)
+    sqrt((nu + 1/2) * (nu + 3/2))
+
+Ginv <-
+function(rho, alpha, beta)
+{
+    ## Perhaps recycle arguments eventually ...
+    
+    sigma <- rho^2
+    rho * (alpha + sqrt(alpha^2 * sigma + beta^2 * (1 - sigma))) /
+        (1 - sigma)
+}
+
+Rinv_lower_Amos_bound <-
+function(rho, nu)
+{
+    ## Perhaps recycle arguments eventually ...
+    pmax(Ginv(rho, nu, nu + 2),
+         Ginv(rho, nu + 1/2, beta_SS(nu)))
+}
+
+Rinv_upper_Amos_bound <-
+function(rho, nu)
+{
+    ## Perhaps recycle arguments eventually ...
+    Ginv(rho, nu + 1/2, nu + 3/2)
+}
+
+S <-
+function(kappa, alpha, beta)
+{
+    u <- sqrt(kappa^2 + beta^2)
+    u - beta - alpha * log((alpha + u) / (alpha + beta))
+}
+
+## Utility functions for computing H and log(H).
 
 H <-
 function(kappa, nu, v0 = 1)
 {
+    ## Compute v0 H_\nu(\kappa) by direct Taylor series summation.
+    
     ## Add range checking eventually.
     n <- max(length(kappa), length(nu), length(v0))
     kappa <- rep(kappa, length.out = n)
     nu <- rep(nu, length.out = n)
     v0 <- rep(v0, length.out = n)
-    .C("my0F1",
-       n,
+    
+    .C(C_my0F1,
+       as.integer(n),
        as.double(kappa ^ 2 / 4),
        as.double(nu + 1),
        as.double(v0),
@@ -500,25 +649,32 @@ function(kappa, nu, v0 = 1)
 lH_asymptotic <-
 function(kappa, nu)
 {
+    ## Compute a suitable asymptotic approximation to
+    ## \log(H_\nu(\kappa)).
+    
     ## Add range checking eventually.    
     n <- max(length(kappa), length(nu))
     kappa <- rep(kappa, length.out = n)
     nu <- rep(nu, length.out = n)
+    
     y <- double(n)
     ipk <- (kappa > 0)
     ipn <- (nu > 0)
     ind <- ipk & !ipn
     if(any(ind)) {
+        ## For \log(H_0) = \log(I_0), use the asymptotic approximation
+        ##   I_0(\kappa) \approx e^\kappa / \sqrt{2 \pi \kappa}
+        ## (e.g., http://dlmf.nist.gov/10.40).
         y[ind] <- kappa[ind] - log(2 * pi * kappa[ind]) / 2
     }
     ind <- ipk & ipn
     if(any(ind)) {
+        ## For \nu > 0, use the Amos-type approximation discussed above.
         kappa <- kappa[ind]
         nu <- nu[ind]
-        u <- sqrt(kappa ^ 2 + nu ^ 2)
         y[ind] <-
-           (lgamma(nu + 1) - lgamma(nu + 1/2)
-            + (u - nu + nu * log((2 * nu) / (u + nu))) - log(u) / 4)
+            pmin(S(kappa, nu, nu + 2),
+                 S(kappa, nu + 1/2, beta_SS(nu)))
     }
     y
 }
@@ -526,23 +682,27 @@ function(kappa, nu)
 lH <-
 function(kappa, nu)
 {
-    ## log(H): see notes.
+    ## Compute \log(H_\nu(\kappa)) (or an approximation to it).
+    ## See the implementation notes for details.
+    
     n <- max(length(kappa), length(nu))
     kappa <- rep(kappa, length.out = n)
     nu <- rep(nu, length.out = n)
-    ## <FIXME>
-    ## Maybe use a "quick check" for determining a kappa/nu region
-    ## feasible for the series expansion?
-    ## </FIXME>
+
     y <- lH_asymptotic(kappa, nu)
-    ind <- y <= 666
+    ## If the value from the asymptotic approximation is small enough,
+    ## we can use direct Taylor series summation.
+    ind <- y <= 699.5
     if(any(ind))
         y[ind] <- log(H(kappa[ind], nu[ind]))
-    ind <- !ind & (y <= 1333)
+    ## For intermediate values of the asymptotic approximation, we use
+    ## rescaling and direct Taylor series summation.
+    ind <- !ind & (y <= 1399)
     if(any(ind)) {
         v <- y[ind] / 2
         y[ind] <- v + log(H(kappa[ind], nu[ind], exp(-v)))
     }
+    ## (Otherwise, we use the asymptotic approximation.)
     y
 }
 
@@ -558,54 +718,124 @@ function(kappa, nu)
 ## A and A prime.
 
 A <-
-function(kappa, d, method = c("PCF", "GCF", "RH"))
+function(kappa, d, method = c("PCF", "GCF", "RH"), tol = 1e-6)
 {
+    method <- match.arg(method)
     n <- max(length(kappa), length(d))
     kappa <- rep(kappa, length.out = n)
     d <- rep(d, length.out = n)
-
-    method <- match.arg(method)
-    if(method == "PCF") {
-        .C("mycfP",
-           as.integer(n), as.double(kappa), as.double(d / 2),
-           y = double(n))$y
-    }
-    else if(method == "GCF") {
-        .C("mycfG",
-           as.integer(n), as.double(kappa), as.double(d / 2),
-           y = double(n))$y
-    }
-    else {
-        s <- d / 2 - 1
-        y <- kappa / d
-        a <- lH_asymptotic(kappa, s + 1)
-        ind <- (a <= 666)
+    A <- vector("numeric", length = n)
+    
+    index <- kappa >= tol
+    if (sum(index)) {
+      method <- match.arg(method)
+      if(method == "PCF") {
+        ## Use the Perron continued fraction for R_{\nu-1}.
+        ## Implementation based on Eqn 3.3' in Gautschi and Slavik
+        ## (1978).
+        ## Note that A_d = R_{d/2-1}.
+        A[index] <- .C(C_mycfP,
+                       as.integer(sum(index)),
+                       as.double(kappa[index]),
+                       as.double(d[index] / 2),
+                       y = double(sum(index)))$y
+      }
+      else if(method == "GCF") {
+        ## Use the Gauss continued fraction for R_{\nu-1}.
+        ## Implementation based on Eqn 3.2' in Gautschi and Slavik
+        ## (1978).
+        ## Note that A_d = R_{d/2-1}.
+        A[index] <- .C(C_mycfG,
+                       as.integer(sum(index)),
+                       as.double(kappa[index]),
+                       as.double(d[index] / 2),
+                       y = double(sum(index)))$y
+      }
+      else {
+        ## Compute A_d via a ratio of H functions:
+        ##   A_d(\kappa)
+        ##     = (kappa/d) * H_{d/2}(\kappa) / H_{d/2-1}(\kappa).
+        s <- d[index] / 2 - 1
+        kappai <- kappa[index]
+        y <- kappai / d[index]
+        a <- lH_asymptotic(kappai, s + 1)
+        ind <- (a <= 699.5)
         if(any(ind))
             y[ind] <- y[ind] *
-                (H(kappa[ind], s + 1) /
-                 H(kappa[ind], s))
-        ind <- !ind & (a <= 1333)
+                (H(kappai[ind], s + 1) /
+                 H(kappai[ind], s))
+        ind <- !ind & (a <= 1399)
         if(any(ind)) {
             v <- exp(- a[ind] / 2)
             y[ind] <- y[ind] *
-                (H(kappa[ind], s + 1, v) /
-                 H(kappa[ind], s, v))
+                (H(kappai[ind], s + 1, v) /
+                 H(kappai[ind], s, v))
         }
-        ind <- (a > 1333)
+        ind <- (a > 1399)
         if(any(ind))
             y[ind] <- y[ind] *
-                exp(a[ind] - lH_asymptotic(kappa[ind], s))
-        if (any(y >= 1))
+                exp(a[ind] - lH_asymptotic(kappai[ind], s))
+        if(any(y >= 1))
           stop("RH evaluation gave infeasible values which are not in the range [0, 1)")
-        y
+        A[index] <- y
+      }
     }
+    if (sum(!index)) {
+      di <- d[!index]
+      kappai <- kappa[!index]
+      A[!index] <- kappai / di - kappai^3 / (di^2 * (di + 2)) + 2 * kappai^5 / (di^3 * (di + 2) * (di + 4))
+    }
+    A 
 }
 
 Aprime <-
-function(kappa, d)
+function(kappa, d, a = NULL, tol = 1e-6, ...)
 {
-    a <- A(kappa, d)
-    1 - a ^ 2 - a * (d - 1) / kappa
+  n <- max(length(kappa), length(d), length(a))
+  kappa <- rep(kappa, length.out = n)
+  d <- rep(d, length.out = n)
+  a <- rep(a, length.out = n)
+  aprime <- vector("numeric", length = n)
+  
+  index <- kappa >= tol
+  if (sum(index)) {
+    if (is.null(a)) 
+      a <- A(kappa[index], d[index], tol = tol, ...)
+    else
+      a <- a[index]
+    aprime[index] <- 1 - a ^ 2 - a * (d[index] - 1) / kappa[index]
+  }
+  if (sum(!index)) {
+    di <- d[!index]
+    aprime[!index] <- 1 / di - 3 / (di^2 * (di + 2)) * kappa[!index]^2 + 10 / (di^3 * (di + 2) * (di + 4)) * kappa[!index]^4
+  }
+  aprime
+}
+
+Adoubleprime <-
+function(kappa, d, a = NULL, tol = 1e-6, ...)
+{
+  n <- max(length(kappa), length(d), length(a))
+  kappa <- rep(kappa, length.out = n)
+  d <- rep(d, length.out = n)
+  a <- rep(a, length.out = n)
+  adoubleprime <- vector("numeric", length = n)
+  
+  index <- kappa >= tol
+  if (sum(index)) {
+    di <- d[index]
+    if (is.null(a)) 
+      a <- A(kappa[index], di, tol = tol, ...)
+    else
+      a <- a[index]
+    kappa2 <- kappa[index]^2
+    adoubleprime[index] <- 2 * a^3 + 3 * (di - 1) / kappa[index] * a^2 + (di^2 - di - 2 * kappa2) / kappa2 * a - (di - 1) / kappa[index]
+  }
+  if (sum(!index)) {
+    di <- d[!index]
+    adoubleprime[!index] <- - 6 / (di^2 * (di + 2)) * kappa[!index] + 40 / (di^3 * (di + 2) * (di + 4)) * kappa[!index]^3
+  }
+  adoubleprime
 }
 
 ## Log-likelihood
@@ -625,8 +855,9 @@ function(ids, k = NULL)
         k <- max(ids)
     else if(max(ids) < k) {
         k <- max(ids)
-        warning("due to initialization number of components reduced to ",
-                k)
+        warning(gettextf("due to initialization number of components reduced to  %d",
+                         k),
+                domain = NA)
     }
     else if(max(ids) > k)
         stop("number of components k smaller than those provided for initialization")
