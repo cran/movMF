@@ -6,9 +6,8 @@ function(x, theta, alpha = 1, log = FALSE)
     ## Be nice to users.
     theta <- rbind(theta)
     k <- max(nrow(theta), length(alpha))
-    theta <- theta[rep(seq_len(nrow(theta)), length.out = k), ,
-                   drop = FALSE]
-    alpha <- rep(alpha, length.out = k)
+    theta <- theta[rep_len(seq_len(nrow(theta)), k), , drop = FALSE]
+    alpha <- rep_len(alpha, k)
     alpha <- alpha / sum(alpha)
 
     y <- ldmovMF(x, theta, alpha)

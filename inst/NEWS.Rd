@@ -3,6 +3,12 @@
 \encoding{UTF-8}
 \section{Changes in version 0.1-0}{
   \itemize{
+    \item Package \pkg{SnowballC} is now suggested instead of
+    \pkg{Snowball}.
+  }
+}
+\section{Changes in version 0.1-0}{
+  \itemize{
     \item Package now uses registration for native (C) routines.
     \item For determining the concentration parameters the additional
     method "Song_et_al_2012" was added which performs 2 Halley steps.

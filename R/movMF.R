@@ -59,7 +59,9 @@ function(x, k, control = list(), ...)
           "Sra_2012",
           "Song_et_al_2012",
           "uniroot",
-          "Newton")
+          "Newton",
+          "Halley",
+          "hybrid")
     kappa <- control$kappa
     if(is.numeric(kappa)) {
         ## CASE A: Use a common given value of kappa.
@@ -176,7 +178,7 @@ function(x, k, control = list(), ...)
         if (!use_common_kappa) {
           if (length(nu) > 1 & length(nu) != ncol(P))
             warning("nu is changed to have length", ncol(P))
-          nu <- rep(nu, length.out = ncol(P))
+          nu <- rep_len(nu, ncol(P))
         }
         L_old <- -Inf
         iter <- 0L
@@ -470,10 +472,56 @@ function(Rbar, d)
     kappa <- solve_kappa_Banerjee_et_al_2005(Rbar, d)
     ## Perform two Newton steps.
     A <- A(kappa, d)
-    kappa <- kappa - (A - Rbar) / Aprime(kappa, d, A)
+    kappa <- kappa - (A - Rbar) / Aprime(kappa, d, A = A)
     A <- A(kappa, d)
-    kappa <- kappa - (A - Rbar) / Aprime(kappa, d, A)
+    kappa <- kappa - (A - Rbar) / Aprime(kappa, d, A = A)
     kappa
+}
+
+solve_kappa_Halley <-
+function(Rbar, d, tol = 1e-6, maxiter = 100L)
+{
+    if(any(Rbar >= 1))
+        stop("Cannot handle infinite concentration parameters")
+    n <- max(length(Rbar), length(d))
+    d <- rep_len(d, n)
+    Rbar <- rep_len(Rbar, n)
+
+    sapply(seq_along(Rbar),
+           function(i) {
+             r <- Rbar[i]
+             r2 <- r^2
+             r3 <- r2 * r
+             r4 <- r3 * r
+             D <- d[i]
+             Dm1 <- D - 1
+             nu <- D / 2 - 1
+             kappa_0 <- Inf
+             kappa <- Rinv_lower_Amos_bound(r, nu)
+             A <- A(kappa, D)
+             Adiff <- A - r
+             for (n in seq_len(maxiter)) {
+               Adiff2 <- Adiff^2
+               Adiff3 <- Adiff^3
+               Dkappa <- Dm1 / kappa
+               numerator <-
+                 2 * (Adiff * (1 - r * Dkappa - r2) - Adiff2 * (2 * r + Dkappa) - Adiff3)
+               denominator <-
+                 2 * (r4 + r3 * 2 * Dkappa + r2 * (-2 + Dkappa^2) -  r * 2 * Dkappa + 1) + 
+                   Adiff * (6 * r3 + 9 * r2 * Dkappa + r * (-6 + Dkappa * (3 * D - 4) / kappa) - 3 * Dkappa) + 
+                     Adiff2 * (6 * r2 + r * 6 * Dkappa + Dkappa * (D - 2)/kappa - 2) + 
+                       Adiff3 * (2 * r + Dkappa)
+               kappa <- kappa - numerator / denominator
+               A <- A(kappa, D)
+               Adiff <- A - r
+               if ((abs(Adiff) < tol) ||
+                   (abs(kappa_0 - kappa) < tol * (kappa_0 + tol))) {
+                 break
+               }
+               kappa_0 <- kappa
+             }
+             kappa
+           })
 }
 
 solve_kappa_Song_et_al_2012 <-
@@ -484,12 +532,14 @@ function(Rbar, d)
     ## Perform two Halley steps.
     A <- A(kappa, d)
     Adiff <- A - Rbar
-    Aprime <- Aprime(kappa, d, A)
-    kappa <- kappa - 2 * Adiff * Aprime / (2 * Aprime^2 - Adiff * Adoubleprime(kappa, d, A))
+    Aprime <- Aprime(kappa, d, A = A)
+    kappa <- kappa - 2 * Adiff * Aprime /
+        (2 * Aprime^2 - Adiff * Adoubleprime(kappa, d, A = A))
     A <- A(kappa, d)
     Adiff <- A - Rbar
-    Aprime <- Aprime(kappa, d, A)
-    kappa <- kappa - 2 * Adiff * Aprime / (2 * Aprime^2 - Adiff * Adoubleprime(kappa, d, A))
+    Aprime <- Aprime(kappa, d, A = A)
+    kappa <- kappa - 2 * Adiff * Aprime /
+        (2 * Aprime^2 - Adiff * Adoubleprime(kappa, d, A = A))
     kappa
 }
 
@@ -498,10 +548,14 @@ function(Rbar, d, tol = 1e-6)
 {
     if(any(Rbar >= 1))
         stop("Cannot handle infinite concentration parameters")
+    n <- max(length(Rbar), length(d))
+    d <- rep_len(d, n)
+    Rbar <- rep_len(Rbar, n)
     
-    nu <- d / 2 - 1
-    sapply(Rbar,
-           function(r) {
+    sapply(seq_along(Rbar),
+           function(i) {
+             r <- Rbar[i]
+             nu <- d[i] / 2 - 1
              interval <- c(Rinv_lower_Amos_bound(r, nu),
                            Rinv_upper_Amos_bound(r, nu))
              if (abs(diff(interval)) < tol)
@@ -517,23 +571,113 @@ function(Rbar, d, tol = 1e-6, maxiter = 100)
 {
     if(any(Rbar >= 1))
         stop("Cannot handle infinite concentration parameters")
-    
-    kappa_0 <- Inf
-    kappa <- Rinv_lower_Amos_bound(Rbar, d / 2 - 1)
-    A <- A(kappa, d)
-    Adiff <- A - Rbar
-    n <- 0
-    while(((abs(Adiff) >= tol) ||
-           (abs(kappa_0 - kappa) >= tol * (kappa_0 + tol)))
-          && (n < maxiter)) {
-        kappa_0 <- kappa
-        kappa <- kappa - Adiff / Aprime(kappa, d, A)
-        A <- A(kappa, d)
-        Adiff <- A - Rbar
-        n <- n + 1
-    }
-    kappa
+    n <- max(length(Rbar), length(d))
+    d <- rep_len(d, n)
+    Rbar <- rep_len(Rbar, n)
+
+    sapply(seq_along(Rbar),
+           function(i) {
+             r <- Rbar[i]
+             D <- d[i]
+             nu <- D / 2 - 1
+             kappa_0 <- Inf
+             kappa <- Rinv_lower_Amos_bound(r, nu)
+             for (n in seq_len(maxiter)) {
+               A <- A(kappa, D)
+               Adiff <- A - r
+               kappa <- kappa - Adiff / Aprime(kappa, D, A = A)
+               A <- A(kappa, D)
+               if ((abs(Adiff) < tol) ||
+                   (abs(kappa_0 - kappa) < tol * (kappa_0 + tol)))
+                 break
+               kappa_0 <- kappa
+             }
+             kappa
+           })
 }
+
+## Combination of Newton with bisection
+## See Press et al., Numerical Recipes
+## Modified to
+## allow different methods for determining steps (Newton, Halley)
+
+step_Newton <-
+function(x, d, Rbar, A = NULL)
+{
+    if (is.null(A)) 
+        A <- A(x, d)
+    fx <- A - Rbar
+    dfx <- Aprime(x, d, A = A)
+    fx / dfx
+}
+
+step_Halley <-
+function(x, d, Rbar, A = NULL)
+{
+    if (is.null(A))
+        A <- A(x, d)
+    Adiff <- A - Rbar
+    Adiff2 <- Adiff^2
+    Adiff3 <- Adiff2 * Adiff
+    dx <- (d - 1) / x
+    Rbar2 <- Rbar^2
+    Rbar3 <- Rbar2 * Rbar
+    Rbar4 <- Rbar3 * Rbar
+    
+    numerator <- 2 * (Adiff * (1 - Rbar * dx - Rbar2) - Adiff2 * (2 * Rbar + dx) - Adiff3)
+    denominator <-
+        2 * (Rbar4 + Rbar3 * 2 * dx + Rbar2 * (-2 + dx^2) -  Rbar * 2 * dx + 1) + 
+            Adiff * (6 * Rbar3 + 9 * Rbar2 * dx + Rbar * (-6 + dx * (3 * d - 4) / x) - 3 * dx) + 
+                Adiff2 * (6 * Rbar2 + Rbar * 6 * dx + dx * (d - 2)/x - 2) + 
+                    Adiff3 * (2 * Rbar + dx)
+    numerator / denominator
+}
+
+solve_kappa_hybrid <-
+function(Rbar, d, tol = 1e-6, maxiter = 100, step = step_Halley)
+{
+    if(any(Rbar >= 1))
+        stop("Cannot handle infinite concentration parameters")
+    
+    n <- max(length(Rbar), length(d))
+    d <- rep_len(d, n)
+    Rbar <- rep_len(Rbar, n)
+    
+    sapply(seq_along(Rbar),
+           function(i) {
+             r <- Rbar[i]
+             D <- d[i]
+             nu <- D / 2 - 1
+             rtsold <- xl <- rts <- Rinv_lower_Amos_bound(r, nu)
+             xh <- Rinv_upper_Amos_bound(r, nu)
+             dxold <- abs(xh - xl)
+             Arts <- A(rts, D)
+             for (j in seq_len(maxiter)) {
+               dx <- step(rts, D, r, Arts)
+               rts <- rts - dx
+               if ((rts > xh) || (rts < xl) || (abs(2 * dx) > abs(dxold))) {
+                 dx <- 0.5 * (xh - xl)
+                 rts <- xl + dx
+                 if(any(xl == rts))
+                   break
+               }
+               else {
+                 if (rtsold == rts)
+                   break
+               }
+               if (abs(dx) < tol)
+                 break
+               dxold <- dx
+               rtsold <- rts
+               Arts <- A(rts, D)
+               if ((Arts  - r) < 0.0)
+                 xl <- rts
+               else 
+                 xh <- rts
+             }
+             rts
+           })
+  }
 
 ## Utility functions for computing A, H and its logarithm (see the
 ## implementation notes).
@@ -634,9 +778,9 @@ function(kappa, nu, v0 = 1)
     
     ## Add range checking eventually.
     n <- max(length(kappa), length(nu), length(v0))
-    kappa <- rep(kappa, length.out = n)
-    nu <- rep(nu, length.out = n)
-    v0 <- rep(v0, length.out = n)
+    kappa <- rep_len(kappa, n)
+    nu <- rep_len(nu, n)
+    v0 <- rep_len(v0, n)
     
     .C(C_my0F1,
        as.integer(n),
@@ -654,8 +798,8 @@ function(kappa, nu)
     
     ## Add range checking eventually.    
     n <- max(length(kappa), length(nu))
-    kappa <- rep(kappa, length.out = n)
-    nu <- rep(nu, length.out = n)
+    kappa <- rep_len(kappa, n)
+    nu <- rep_len(nu, n)
     
     y <- double(n)
     ipk <- (kappa > 0)
@@ -686,8 +830,8 @@ function(kappa, nu)
     ## See the implementation notes for details.
     
     n <- max(length(kappa), length(nu))
-    kappa <- rep(kappa, length.out = n)
-    nu <- rep(nu, length.out = n)
+    kappa <- rep_len(kappa, n)
+    nu <- rep_len(nu, n)
 
     y <- lH_asymptotic(kappa, nu)
     ## If the value from the asymptotic approximation is small enough,
@@ -715,15 +859,15 @@ function(kappa, nu)
      H(kappa, nu) * (kappa / 2)^nu / gamma(nu + 1))
 }
 
-## A and A prime.
+## A, A prime and A double prime.
 
 A <-
 function(kappa, d, method = c("PCF", "GCF", "RH"), tol = 1e-6)
 {
     method <- match.arg(method)
     n <- max(length(kappa), length(d))
-    kappa <- rep(kappa, length.out = n)
-    d <- rep(d, length.out = n)
+    kappa <- rep_len(kappa, n)
+    d <- rep_len(d, n)
     A <- vector("numeric", length = n)
     
     index <- kappa >= tol
@@ -789,54 +933,70 @@ function(kappa, d, method = c("PCF", "GCF", "RH"), tol = 1e-6)
 }
 
 Aprime <-
-function(kappa, d, a = NULL, tol = 1e-6, ...)
+function(kappa, d, method = c("PCF", "GCF", "RH"), tol = 1e-6, A = NULL)
 {
-  n <- max(length(kappa), length(d), length(a))
-  kappa <- rep(kappa, length.out = n)
-  d <- rep(d, length.out = n)
-  a <- rep(a, length.out = n)
-  aprime <- vector("numeric", length = n)
+    n <- max(length(kappa), length(d), length(A))
+    kappa <- rep_len(kappa, n)
+    d <- rep_len(d, n)
+    if(!is.null(A))
+        A <- rep_len(A, n)
+    aprime <- vector("numeric", length = n)
   
-  index <- kappa >= tol
-  if (sum(index)) {
-    if (is.null(a)) 
-      a <- A(kappa[index], d[index], tol = tol, ...)
-    else
-      a <- a[index]
-    aprime[index] <- 1 - a ^ 2 - a * (d[index] - 1) / kappa[index]
-  }
-  if (sum(!index)) {
-    di <- d[!index]
-    aprime[!index] <- 1 / di - 3 / (di^2 * (di + 2)) * kappa[!index]^2 + 10 / (di^3 * (di + 2) * (di + 4)) * kappa[!index]^4
-  }
-  aprime
+    index <- kappa >= tol
+    if (sum(index)) {
+        if(is.null(A)) 
+            A <- A(kappa[index], d[index], method, tol)
+        else
+            A <- A[index]
+        aprime[index] <- 1 - A ^ 2 - A * (d[index] - 1) / kappa[index]
+    }
+    if (sum(!index)) {
+        di <- d[!index]
+        aprime[!index] <- 1 / di - 3 / (di^2 * (di + 2)) * kappa[!index]^2 + 10 / (di^3 * (di + 2) * (di + 4)) * kappa[!index]^4
+    }
+    aprime
 }
 
 Adoubleprime <-
-function(kappa, d, a = NULL, tol = 1e-6, ...)
+function(kappa, d, method = c("PCF", "GCF", "RH"), tol = 1e-6, A = NULL)
 {
-  n <- max(length(kappa), length(d), length(a))
-  kappa <- rep(kappa, length.out = n)
-  d <- rep(d, length.out = n)
-  a <- rep(a, length.out = n)
-  adoubleprime <- vector("numeric", length = n)
+    n <- max(length(kappa), length(d), length(A))
+    kappa <- rep_len(kappa, n)
+    d <- rep_len(d, n)
+    if(!is.null(A))
+        A <- rep_len(A, n)
+    adoubleprime <- vector("numeric", length = n)
   
-  index <- kappa >= tol
-  if (sum(index)) {
-    di <- d[index]
-    if (is.null(a)) 
-      a <- A(kappa[index], di, tol = tol, ...)
-    else
-      a <- a[index]
-    kappa2 <- kappa[index]^2
-    adoubleprime[index] <- 2 * a^3 + 3 * (di - 1) / kappa[index] * a^2 + (di^2 - di - 2 * kappa2) / kappa2 * a - (di - 1) / kappa[index]
-  }
-  if (sum(!index)) {
-    di <- d[!index]
-    adoubleprime[!index] <- - 6 / (di^2 * (di + 2)) * kappa[!index] + 40 / (di^3 * (di + 2) * (di + 4)) * kappa[!index]^3
-  }
-  adoubleprime
+    index <- kappa >= tol
+    if (sum(index)) {
+        di <- d[index]
+        if (is.null(A)) 
+            A <- A(kappa[index], di, method, tol)
+        else
+            A <- A[index]
+        kappa2 <- kappa[index]^2
+        adoubleprime[index] <- 2 * A^3 + 3 * (di - 1) / kappa[index] * A^2 + (di^2 - di - 2 * kappa2) / kappa2 * A - (di - 1) / kappa[index]
+    }
+    if(sum(!index)) {
+        di <- d[!index]
+        adoubleprime[!index] <- - 6 / (di^2 * (di + 2)) * kappa[!index] + 40 / (di^3 * (di + 2) * (di + 4)) * kappa[!index]^3
+    }
+    adoubleprime
 }
+
+## R, R prime and R double prime.
+
+R <-
+function(t, nu, ...)
+    A(t, 2 * (nu + 1), ...)
+
+Rprime <-
+function(t, nu, ..., R = NULL)
+    Aprime(t, 2 * (nu + 1), ..., A = R)
+
+Rdoubleprime <-
+function(t, nu, ..., R = NULL)
+    Adoubleprime(t, 2 * (nu + 1), ..., A = R)
 
 ## Log-likelihood
 

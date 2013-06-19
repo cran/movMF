@@ -1401,7 +1401,7 @@ to cluster gene expression profiles.
 %%------------------------------------------------------------------------
 \section*{Acknowledgments}
 
-This research was supported by the the Austrian Science Fund (FWF)
+This research was supported by the Austrian Science Fund (FWF)
 under Elise-Richter grant V170-N18.
 
 We would like to thank Achim Zeileis and Uwe Ligges for helping
