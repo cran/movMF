@@ -62,21 +62,46 @@ movMF(x, k, control = list(), ...)
   \code{kappa}, one can specify how to (approximately) solve these
   equations, and whether a common (possibly given) length \eqn{\kappa}
   should be employed.  If \code{kappa} is a number, it gives a common
-  length to be employed.  If it is a character string, it specified the
-  method to be used for solving the \eqn{\kappa} equation.  Method
-  \code{"Banerjee_et_al_2005"} uses the approximation of Banerjee et al
-  (2005), \code{"Tanabe_et_al_2007"} the fixed-point iteration of Tanabe
-  et al (2007), \code{"Sra_2012"} uses two Newton steps as suggested in
-  Sra (2012), \code{"Song_et_al_2012"} uses two Halley steps as
-  suggested in Song et al (2012), \code{"uniroot"} a straightforward call to
-  \code{\link{uniroot}}, and finally \code{"Newton"} (default) uses a
-  full Newton algorithm.  The lower-cased version of the given
-  \code{kappa} specification is matched against the lower-cased names of
-  the available methods using \code{\link{pmatch}}.  Finally, to
-  indicate using a common (but not given) \eqn{kappa} for all component
-  distributions, \code{kappa} should be a list with element \code{common
-  = TRUE} (and optionally a character string giving the estimation
-  method).
+  length to be employed.  If it is a character string, it specifies the
+  method to be used for solving the \eqn{\kappa} equation. The possible
+  methods are:
+  \describe{
+    \item{\code{"Banerjee_et_al_2005"}}{uses the approximation of
+      Banerjee et al (2005).}
+    \item{\code{"Tanabe_et_al_2007"}}{uses the fixed-point iteration of
+      Tanabe et al (2007) with starting point for \eqn{\kappa} in the
+      interval established by Tanabe et al (2007) implied by a given
+      \code{c} with values in [0, 2]. The default is \code{c} = 1, the
+      mid-point of the interval.}
+    \item{\code{"Sra_2012"}}{uses two Newton steps as suggested in
+      Sra (2012) starting in the approximation of Banerjee et al (2005).}
+    \item{\code{"Song_et_al_2012"}}{uses two Halley steps as
+      suggested in Song et al (2012) starting in the approximation of
+      Banerjee et al (2005).}
+    \item{\code{"uniroot"}}{uses a straightforward call to
+      \code{\link{uniroot}} with the bounds established in Hornik and
+	\enc{Grün}{Gruen} (2012).}
+    \item{\code{"Newton"}}{uses a full Newton algorithm started in the
+      approximation of Hornik and \enc{Grün}{Gruen} (2012).}
+    \item{\code{"Halley"}}{uses a full Halley algorithm started in the
+      approximation of Hornik and \enc{Grün}{Gruen} (2012).}
+    \item{\code{"hybrid"}}{implements a combination of a
+      derivative-based step (Newton or Halley) and a bisection step as
+      outlined in Press et al. (2002). The derivative-based step can be
+      specified via the argument \code{step} which expects a function
+      performing this step. Currently \code{step_Newton} and
+      \code{step_Halley} (default) are available.}
+    \item{\code{"Newton_Fourier"} (default)}{uses a variant of the
+      Newton-Fourier method for strictly increasing concave functions as
+      for example given in Atkinson (1989, pp. 62--64). Concavity can
+      be established using Hornik and \enc{Grün}{Gruen} (2013).}
+  }
+  The lower-cased version of the given \code{kappa} specification is
+  matched against the lower-cased names of the available methods using
+  \code{\link{pmatch}}.  Finally, to indicate using a common (but not
+  given) \eqn{\kappa} for all component distributions, \code{kappa}
+  should be a list with element \code{common = TRUE} (and optionally a
+  character string giving the estimation method).
 
   Additional control parameters are as follows.
 
@@ -84,7 +109,7 @@ movMF(x, k, control = list(), ...)
     \item{\code{maxiter}}{an integer giving the maximal number of EM
       iterations to be performed.  Default: 100.
     }
-    \item{\code{reltol}}{The minimum relative improvement of the
+    \item{\code{reltol}}{the minimum relative improvement of the
       objective function per iteration. If improvement is less, the EM
       algorithm will stop under the assumption that no further
       significant improvement can be made.  Defaults to
@@ -146,15 +171,19 @@ movMF(x, k, control = list(), ...)
   very large and sparse.  The provided implementation should be able to
   handle such large corpora with reasonable efficiency by employing
   suitable sparse matrix representations and computations.  In addition,
-  straightforward computations of the normalizing constants in the vMF
-  densities (see \link[=dmovMF]{movMF_distribution}) by directly
-  employing the modified Bessel functions of the first kind are
+  straightforward computations of the normalizing constants in the von
+  Mises-Fisher densities (see \link[=dmovMF]{movMF_distribution}) by
+  directly employing the modified Bessel functions of the first kind are
   computationally infeasible for large \eqn{d} (dimension of the
-  observations) and/or values of the concentration parameters.  Instead,
-  we use suitably scaled hypergeometric-type power series for computing
-  (the logarithms of) the normalizing constants.
+  observations) and/or values of the parameter lengths \eqn{\kappa}.
+  Instead, we use suitably scaled hypergeometric-type power series for
+  computing (the logarithms of) the normalizing constants.
 }
 \references{
+  K. E. Atkinson (1989).
+  \emph{An Introduction to Numerical Analysis.}
+  2nd edition. John Wiley & Sons.
+  
   A. Banerjee, I. S. Dhillon, J. Ghosh, and S. Sra (2005).
   Clustering on the unit hypersphere using von Mises-Fisher
   distributions.
@@ -162,10 +191,32 @@ movMF(x, k, control = list(), ...)
   \url{http://jmlr.csail.mit.edu/papers/v6/banerjee05a.html}.
 
   G. Celeux, and G. Govaert (1992).
-  A Classification EM algorithm for clustering and two stochastic
+  A classification EM algorithm for clustering and two stochastic
   versions.
   \emph{Computational Statistics & Data Analysis}, \bold{14}, 315--332.
   doi: 10.1016/0167-9473(92)90042-E.
+
+  K. Hornik K, and B. \enc{Grün}{Gruen} (2012).
+  On maximum likelihood estimation of the concentration
+  parameter of von Mises-Fisher distributions.
+  \emph{Report 120}, Institute for Statistics and Mathematics, WU
+  \enc{Wirtschaftsuniversität}{Wirtschaftsuniversitaet} Wien, Research
+  Report Series. \url{http://epub.wu.ac.at/3669/}
+  
+  K. Hornik, and B. \enc{Grün}{Gruen} (2013).
+  Amos-type bounds for modified Bessel function ratios.
+  \emph{Journal of Mathematical Analysis and Applications},
+  \bold{408}(1), 91--101.  doi:10.1016/j.jmaa.2013.05.070.
+  
+  W. H. Press, S. A. Teukolsky, W. T. Vetterling and Brian P. Flannery
+  (2002).
+  \emph{Numerical Recipes in C: The Art of Scientific Computing.}
+  2nd edition. Cambridge University Press.
+  
+  H. Song, J. Liu, and G. Wang.
+  High-order parameter approximation for von Mises-Fisher distributions.
+  \emph{Applied Mathematics and Computation}, \bold{218}, 11880--11890.
+  doi: 10.1016/j.amc.2012.05.050.
    
   S. Sra (2012).
   A short note on parameter approximation for von Mises-Fisher
@@ -177,11 +228,6 @@ movMF(x, k, control = list(), ...)
   Parameter estimation for von Mises-Fisher distributions.
   \emph{Computational Statistics}, \bold{22}, 145--157.
   doi: 10.1007/s00180-007-0030-7.
-
-  H. Song, J. Liu, and G. Wang.
-  High-order parameter approximation for von Mises-Fisher distributions.
-  \emph{Applied Mathematics and Computation}, \bold{218}, 11880--11890.
-  doi: 10.1016/j.amc.2012.05.050.
 }
 \examples{
 ## Generate and fit a "small-mix" data set a la Banerjee et al.
@@ -191,12 +237,12 @@ kappa <- c(4, 4)
 theta <- kappa * mu
 theta
 alpha <- c(0.48, 0.52)
-## Generate a sample of size n = 50 from the vMF mixture with the above
-## parameters.
+## Generate a sample of size n = 50 from the von Mises-Fisher mixture
+## with the above parameters.
 set.seed(123)
 x <- rmovMF(50, theta, alpha)
-## Fit a vMF mixture with the "right" number of components, using 10 EM
-## runs.
+## Fit a von Mises-Fisher mixture with the "right" number of components,
+## using 10 EM runs.
 y2 <- movMF(x, 2, nruns = 10)
 ## Inspect the fitted parameters:
 y2

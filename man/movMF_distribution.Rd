@@ -19,7 +19,7 @@ rmovMF(n, theta, alpha = 1)
   \item{alpha}{a numeric vector with non-negative elements giving the
     mixture probabilities.
     Standardized to sum to one if necessary.}
-  \item{log}{a logical; if \code{TRUE}, log-densities are computed.}
+  \item{log}{a logical; if \code{TRUE} log-densities are computed.}
   \item{n}{an integer giving the number of samples to draw.}  
 }
 \value{
@@ -74,8 +74,8 @@ rmovMF(n, theta, alpha = 1)
 \references{
   A. T. A. Wood (1994).
   Simulation of the von Mises Fisher distribution.
-  \emph{Communications in Statistics: Simulation and Computation},
-  \bold{23}, 157--164.
+  \emph{Communications in Statistics -- Simulation and Computation},
+  \bold{23}(1), 157--164.
 }
 \examples{
 ## To simulate from the vMF distribution with mean direction

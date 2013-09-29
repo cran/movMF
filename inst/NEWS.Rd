@@ -1,7 +1,15 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
-\section{Changes in version 0.1-0}{
+\section{Changes in version 0.1-2}{
+  \itemize{
+    \item For determining the concentration parameters the following
+    additonal methods were implemented: \code{"Halley"}, \code{"hybrid"}
+    and \code{"Newton_Fourier"}. The default method is now
+    \code{"Newton_Fourier"}. 
+  }
+}
+\section{Changes in version 0.1-1}{
   \itemize{
     \item Package \pkg{SnowballC} is now suggested instead of
     \pkg{Snowball}.
@@ -11,7 +19,8 @@
   \itemize{
     \item Package now uses registration for native (C) routines.
     \item For determining the concentration parameters the additional
-    method "Song_et_al_2012" was added which performs 2 Halley steps.
+    method \code{"Song_et_al_2012"} was added which performs 2 Halley
+    steps. 
     \item A vignette documenting the use of the package and some
     implementation issues is added.
     \item Function \code{A()} and the functions of its first and second

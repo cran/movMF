@@ -61,7 +61,8 @@ function(x, k, control = list(), ...)
           "uniroot",
           "Newton",
           "Halley",
-          "hybrid")
+          "hybrid",
+          "Newton_Fourier")
     kappa <- control$kappa
     if(is.numeric(kappa)) {
         ## CASE A: Use a common given value of kappa.
@@ -99,7 +100,7 @@ function(x, k, control = list(), ...)
         } else {
             ## Default solver.
             solve_kappa <- function(Rbar)
-                solve_kappa_Newton(Rbar, d)
+                solve_kappa_Newton_Fourier(Rbar, d)
         }
         if(use_common_kappa) {
             do_kappa <- function(norms, alpha) 
@@ -201,7 +202,7 @@ function(x, k, control = list(), ...)
                 if(any(alpha == 0 & nu <= 0))
                     stop("Cannot handle empty components")
                 M <- skmeans:::g_crossprod(P, x)
-                norms <- skmeans:::row_norms(M)
+                norms <- slam::row_norms(M)
                 M <- M / ifelse(norms > 0, norms, 1)
                 ## If a cluster contains only identical observations,
                 ## Rbar = 1.
@@ -349,7 +350,7 @@ function(object, newdata = NULL,
         x <- skmeans:::row_normalize(newdata)
         theta <- object$theta
         alpha <- object$alpha
-        kappa <- sqrt(rowSums(theta ^ 2))
+        kappa <- slam::row_norms(theta)
         ## Could maybe check dimensions.
         ## Same as for E step in movMF().
         d <- nrow(theta)
@@ -593,6 +594,43 @@ function(Rbar, d, tol = 1e-6, maxiter = 100)
                kappa_0 <- kappa
              }
              kappa
+           })
+}
+
+solve_kappa_Newton_Fourier <-
+function(Rbar, d, tol = 1e-6, maxiter = 100L)
+{
+    if(any(Rbar >= 1))
+        stop("Cannot handle infinite concentration parameters")
+    n <- max(length(Rbar), length(d))
+    d <- rep_len(d, n)
+    Rbar <- rep_len(Rbar, n)
+
+    sapply(seq_along(Rbar),
+           function(i) {
+               r <- Rbar[i]
+               D <- d[i]
+               nu <- D / 2 - 1
+               lower <- Rinv_lower_Amos_bound(r, nu)
+               upper <- Rinv_upper_Amos_bound(r, nu)
+               iter <- 1L
+               while(iter <= maxiter) {
+                   A <- A(lower, D)
+                   Aprime <- Aprime(lower, D, A = A)
+                   lower <- lower - (A - r) / Aprime
+                   A <- A(upper, D)                   
+                   upper <- upper - (A - r) / Aprime
+                   if((upper - lower) < tol * (lower + upper)) {
+                       if ((upper - lower) < - tol * (lower + upper))
+                           stop("no convergence")
+                       break
+                   }
+                   iter <- iter + 1L
+               }
+               ## <FIXME>
+               ## What should we really return?
+               (lower + upper) / 2
+               ## </FIXME>
            })
 }
 

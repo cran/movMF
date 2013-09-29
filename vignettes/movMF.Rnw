@@ -14,8 +14,8 @@
   \begin{quote}\strut\marginpar{FIXME}}{\end{quote}}
 
 %% \usepackage{Sweave}
-\SweaveOpts{eps=false, keep.source=true, width=12, height=5}
-\setkeys{Gin}{width=0.8\textwidth}
+\SweaveOpts{eps=false, keep.source=true, width=8, height=4}
+\setkeys{Gin}{width=\textwidth}
 
 \author{Kurt Hornik\\WU Wirtschaftsuniversit\"at Wien \And
   Bettina Gr\"un\\Johannes Kepler Universit{\"at} Linz }
@@ -44,13 +44,13 @@
   for maximum likelihood estimation. Special features are the
   possibility to use sparse matrix representations for the input data,
   different variants of the expectation-maximization algorithm,
-  different methods for determing the concentration parameters in the
+  different methods for determining the concentration parameters in the
   M-step and to impose constraints on the concentration parameters
-  over the groups. 
+  over the components. 
   
   In this paper we describe the main fitting function of the package
-  and illustrate its application. We also discuss how several
-  numerical issues are resolved which occur for estimating the
+  and illustrate its application. We also discuss how
+  several numerical issues are resolved which occur for estimating the
   concentration parameters and for determining the normalizing
   constant of the von Mises-Fisher distribution.
   
@@ -60,8 +60,8 @@
   Kurt Hornik\\
   Institute for Statistics and Mathematics\\
   WU Wirtschaftsuniversit\"at Wien\\
-  Augasse 2--6\\
-  1090 Wien, Austria\\
+  Welthandelsplatz 1\\
+  1020 Wien, Austria\\
   E-mail: \email{Kurt.Hornik@R-project.org}\\
   URL: \url{http://statmath.wu.ac.at/~hornik/}
   
@@ -74,11 +74,13 @@
   URL: \url{http://ifas.jku.at/gruen/}
 }
 <<echo=false, results=hide>>=
+set.seed(1234)
 options(width=65, prompt = "R> ", continue = "+  ", useFancyQuotes = FALSE)
 cache <- TRUE
 library("slam")
 library("lattice")
 library("movMF")
+palette(colorspace::heat_hcl(4))
 ltheme <- canonical.theme("pdf", FALSE)
 for (i in grep("padding", names(ltheme$layout.heights))) {
   ltheme$layout.heights[[i]] <- 0.2
@@ -87,6 +89,68 @@ for (i in grep("padding", names(ltheme$layout.widths))) {
   ltheme$layout.widths[[i]] <- 0
 }
 lattice.options(default.theme = ltheme)
+@ 
+
+<<echo=false>>=
+rotationMatrix <- function(mu) {
+    beta <- asin(mu[1])
+    alpha <- atan( - mu[2] / mu[3]) + sign(mu[2] * mu[3]) * (mu[3] < 0) * pi
+    cosa <- cos(alpha); cosb <- cos(beta)
+    sina <- sin(alpha); sinb <- sin(beta)
+    matrix(c(cosb, sina * sinb, - cosa * sinb,
+             0, cosa, sina,
+             sinb, - sina * cosb, cosa * cosb),
+           nrow = 3)
+}
+
+getIsolines <- function(d, mu, length = 100) {
+    theta <- seq(0, 2*pi, length = length)
+    sinphi <- sin(acos(d))
+    tcrossprod(cbind(cos(theta) * sinphi, sin(theta) * sinphi, d),
+               rotationMatrix(mu))
+}
+
+plotGlobe <- function(x, class, pars = NULL, main = "", theta = 0, phi = 0,
+                      Q = c(0.5, 0.95), n = 100000,
+                      xlim = c(-1, 1), ylim = c(-1, 1), zlim = c(-1, 1), ...) {
+    pmat <- persp(0:1, 0:1, matrix(, 2, 2), theta = theta, phi = phi, 
+                  xlim = xlim, ylim = ylim, zlim = zlim, scale = FALSE,
+                  xlab="x", ylab="y", zlab="z", main = main, ...)
+    trans3d <- function(x, y, z) {
+        tr <- cbind(x, y, z, 1) %*% pmat
+        list(x = tr[, 1]/tr[, 4],
+             y = tr[, 2]/tr[, 4])
+    }
+    x <- x / row_norms(x)
+    x3D <- trans3d(x[,1], x[,2], x[,3])
+    
+    theta <- seq(0, 2*pi, length = 41)
+    phi <- seq(0, pi/2, length = 21)
+    x <- cos(theta) %o% sin(phi)
+    y <- sin(theta) %o% sin(phi)
+    z <- rep(1, length(theta)) %o% cos(phi)
+    for (j in seq(phi)[-1]) for (i in seq(theta)[-1]) {
+        idx <- rbind(c(i-1,j-1), c(i,j-1), c(i,j), c(i-1,j))
+        polygon(trans3d(x[idx], y[idx], z[idx]), border = "grey")
+    }
+    points(x3D$x, x3D$y, col = class, pch = 20)
+
+    if (!is.null(pars)) {
+        kappa <- row_norms(pars)
+        d <- sapply(kappa, function(K) rmovMF(n, K * c(1, 0, 0))[,1])
+        mu <- pars / kappa
+        for (i in seq_along(Q)) {
+            M <- apply(d, 2, quantile, 1-Q[i])
+            isos <- lapply(seq_len(nrow(mu)), function(i) getIsolines(M[i], mu[i,]))
+            isostrans <- lapply(isos, function(x) trans3d(x[,1], x[,2], x[,3]))
+            lapply(seq_along(isostrans), function(j) 
+                   polygon(isostrans[[j]]$x, isostrans[[j]]$y, border = j, lwd = 2, lty = i))
+        }
+        mu3D <- trans3d(mu[,1], mu[,2], mu[,3])
+        points(mu3D$x, mu3D$y, pch = 4, lwd = 2, col = seq_len(nrow(mu)))
+    }
+    invisible(pmat)
+}
 @ 
 
 <<corpus-package, echo=false, results=hide>>=
@@ -110,16 +174,16 @@ data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts")
 \section{Introduction}\label{sec:introduction}
 
 Finite mixture models allow to cluster observations by assuming that
-for each group a suitable parametric distribution can be specified and
+for each component a suitable parametric distribution can be specified and
 that the mixture distribution is derived by convex combination of the
-group distributions. An overview on the estimation of these models in a
-maximum likelihood as well as a Bayesian setting together with different
-applications of finite mixture models are presented in
-\citet{vMF:McLachlan+Peel:2000} and
-\citet{vMF:Fruehwirth-Schnatter:2006}.
+component distributions.  \citet{vMF:McLachlan+Peel:2000} and
+\citet{vMF:Fruehwirth-Schnatter:2006} present overviews on the
+estimation of these models in a maximum likelihood as well as a
+Bayesian setting together with different applications of finite
+mixture models.
 
 If the support of the data is given by the unit sphere, a natural
-choice for the group distributions is the von Mises-Fisher (vMF)
+choice for the component distributions is the von Mises-Fisher (vMF)
 distribution. The special case where data is in $\mathbb{R}^2$, i.e.,
 the observations lie on the unit circle, is referred to as von Mises
 distribution. The vMF distribution has concentric contour lines
@@ -129,14 +193,14 @@ fact \citet[][p.~173]{vMF:Mardia+Jupp:1999} point out that if $x$
 follows a multivariate normal distribution with mean parameter $\mu$
 which has length one and variance-covariance matrix $\kappa^{-1}I$,
 then the conditional distribution of $x$ given that it has length one
-is a vMF distribution with mean direction parameter $\mu$ and
-concentration $\kappa$.
+is a vMF distribution with mean direction parameter~$\mu$ and
+concentration parameter~$\kappa$.
 
 Finite mixtures of vMF distributions were introduced in
 \citet{vMF:Banerjee+Dhillon+Ghosh:2005} to cluster data on the unit
-sphere. They propose to use the expectation-maximziation (EM) algorithm
+sphere. They propose to use the expectation-maximization (EM) algorithm
 for maximum likelihood (ML) estimation and present two variants which
-they refer to as hard and soft clustering. The areas of applications of
+they refer to as hard and soft clustering. The areas of application of
 the presented examples include text mining where abstracts of scientific
 journals, news articles and newsgroup messages are categorized, and
 bioinformatics using a yeast gene expression data set.  In these
@@ -154,7 +218,7 @@ at clustering the speakers. They compare the performance of finite
 mixtures of Gaussian distributions with those of vMF distributions and
 conclude that for this application the latter outperform finite
 mixtures of multivariate normal distributions. Further possible areas
-of application for finite mixtures of vMFs are segmentation in high
+of application for finite mixtures of vMF distributions are segmentation in high
 angular resolution diffusion imaging
 \citep{vMF:McGraw+Vemuri+Yezierski:2006} and clustering treatment beam
 directions in external radiation therapy
@@ -166,14 +230,17 @@ shows how to draw samples from this distribution and how to determine
 the ML estimates of its parameters.  The extension to finite mixture
 models is covered in Section~\ref{sec:finite-mixtures-vmf} including
 again the methods for drawing samples and determining ML
-estimates. The \proglang{R} \citep{vMF:Team:2012} package \pkg{movMF}
-is presented in Section~\ref{sec:main-fitt-funct} by describing the
-main fit function \fct{movMF} in detail. An illustrative application
-of the package using the abstracts from the talks at
-``use\proglang{R}!  2008'', the 3rd international \proglang{R} user
-conference, in Dortmund, Germany, is given in
-Section~\ref{sec:appl-user-2008}. The paper concludes with a summary
-and an outlook on possible extensions.
+estimates. The \proglang{R} \citep{vMF:Team:2013} package \pkg{movMF}
+is presented in Section~\ref{sec:software} by describing the main
+fitting function \fct{movMF} in detail. The package is available from
+the Comprehensive \proglang{R} Archive Network at
+\url{http://CRAN.R-project.org/package=movMF}. Numerical issues when
+evaluating the density or determining the ML are discussed in
+Section~\ref{sec:numerics}. An illustrative application of the package
+using the abstracts from the talks at ``use\proglang{R}!  2008'', the
+3rd international \proglang{R} user conference, in Dortmund, Germany,
+is given in Section~\ref{sec:appl-user-2008}. The paper concludes with
+a summary and an outlook on possible extensions.
 
 %%------------------------------------------------------------------------
 %%------------------------------------------------------------------------
@@ -184,7 +251,7 @@ A random unit length vector in $\R^d$ has a \emph{von Mises-Fisher}
 density with respect to the uniform distribution on the unit sphere
 $\S^{d-1} = \{x \in \mathbb{R}^d: \|x\| = 1 \}$ is given by
 \begin{displaymath}
-  f(x|\theta) = e^{\theta' x} / \pFq{0}{1}(; d/2; \|\theta\|^2 / 4),
+  f(x|\theta) = e^{\theta^{\top} x} / \pFq{0}{1}(; d/2; \|\theta\|^2 / 4),
 \end{displaymath}
 where
 \begin{displaymath}
@@ -208,17 +275,12 @@ $\theta / \|\theta\|$).
 
 In what follows, it will be convenient to write
 \begin{displaymath}
-  H_\nu(\kappa) = \pFq{0}{1}(; \nu + 1; \kappa^2 / 4)
-\end{displaymath}
-and
-\begin{displaymath}
   C_d(\kappa)
   = 1 / \pFq{0}{1}(; d/2; \kappa^2 / 4)
-  = 1 / H_{d/2-1}(\kappa)
 \end{displaymath}
 so that the density is given by
 \begin{displaymath}
-  f(x | \theta) = C_d(\|\theta\|) e^{\theta'x}.
+  f(x | \theta) = C_d(\|\theta\|) e^{\theta^{\top}x}.
 \end{displaymath}
 
 \subsection{Simulating vMF distributions}
@@ -252,7 +314,7 @@ package \pkg{rstiefel} \citep{vMF:Hoff:2012}.
 \item Generate a uniform $(d-1)$-dimensional unit vector $V$ and
   return
   \begin{align*}
-    X &= (\sqrt{1 - W^2} V', W)'.
+    X &= (\sqrt{1 - W^2} V^{\top}, W)^{\top}.
   \end{align*}
 \end{enumerate}
 
@@ -264,13 +326,12 @@ multiplied from the left with a matrix where the first $(d-1)$ columns
 consist of unitary basis vectors of the subspace orthogonal to $\mu$ and
 the last column is equal to $\mu$.
 
-\newpage
 \subsection{Estimating the parameters of the vMF distribution}\label{sec:estim-param-vmf}
 Using the common parametrization by $\kappa$ and $\mu$, the
 log-likelihood of a sample $x_1, \ldots, x_n$ from the vMF distribution
 is given by
 \begin{displaymath}
-  n \log(C_d(\kappa)) + \kappa \mu' r,
+  n \log(C_d(\kappa)) + \kappa \mu^{\top} r,
 \end{displaymath}
 where $r = \sum_{i=1}^n x_i$ is the resultant vector (sum) of the $x_i$.
 The maximum likelihood estimates (MLEs) are obtained by solving the
@@ -280,32 +341,23 @@ likelihood equations
   - \frac{C_d'(\hat{\kappa})}{C_d(\hat{\kappa})} = \|r\| / n.
 \end{displaymath}
 Writing $A_d(\kappa) = - C_d'(\kappa) / C_d(\kappa)$ for the logarithmic
-derivative of $1 / C_d(\kappa)$ and $\rho = \|r\| / n$ for average
+derivative of $1 / C_d(\kappa)$ and $\rho = \|r\| / n$ for the average
 resultant length, the equation for the MLE of $\kappa$ becomes
 \begin{displaymath}
   A_d(\hat{\kappa}) = \rho.
 \end{displaymath}
-Using recursions for the modified Bessel functions \citep[e.g.,][page
+Using recursions for the modified Bessel function \citep[e.g.,][page
 71]{vMF:Watson:1995}, one can establish that
 \begin{displaymath}
   A_d(\kappa)
   = - \frac{C_d'(\kappa)}{C_d(\kappa)}
-  = \frac{I_{d/2}(\kappa)}{I_{d/2-1}(\kappa)}
-\end{displaymath}
-so that using Equation~\ref{eq:0F1-and-I},
-\begin{displaymath}
-  A_d(\kappa)
-  =
-  \frac{(\kappa/2)^{\nu + 1} H_{\nu+1}(\kappa) / \Gamma(\nu+2)}
-  {(\kappa/2)^{\nu} H_{\nu}(\kappa) / \Gamma(\nu+1)}
-  = \frac{\kappa}{d} \frac{H_{\nu+1}(\kappa)}{H_{\nu}(\kappa)},
-  \qquad \nu = d/2 - 1.
+  = \frac{I_{d/2}(\kappa)}{I_{d/2-1}(\kappa)}.
 \end{displaymath}
 It can be shown \citep[see for example][]{vMF:Schou:1978} that $A_d$ is
 a strictly increasing function which maps the interval $[0, \infty)$
-onto the interval $[0, 1)$ and satifies the Riccatti equation
+onto the interval $[0, 1)$ and satisfies the Riccati equation
 $A_d'(\kappa) = 1 - A_d(\kappa)^2 - \frac{d-1}{\kappa} A_d(\kappa)$.  As
-$A_d$ and hence its derivates can efficiently be computed using
+$A_d$ and hence its derivatives can efficiently be computed using
 continued fractions (see Section~\ref{sec:numerics} for details), the
 equation $A_d(\hat{\kappa}) = \rho$ can efficiently be solved by
 standard iterative techniques provided that good starting approximations
@@ -340,7 +392,7 @@ iteration
 with a starting value in the solution range, e.g., using $c = 1$ or $c
 = \rho^2$.  
 
-\citet{vMF:Sra:2012} suggests to use a ``truncated Newton approximation''
+\citet{vMF:Sra:2012} introduces a ``truncated Newton approximation''
 based on performing exactly two Newton iterations
 \begin{displaymath}
   \kappa_{t+1} =
@@ -365,13 +417,14 @@ $A_d(\kappa_t)$, i.e.,
 \end{displaymath}
 
 The results in \citet{vMF:Hornik+Gruen:2012b} yield the substantially
-improved bounds for $0 \le \rho < 1$\begin{equation}
+improved bounds
+\begin{equation}
   \label{eq:bounds-for-kappa-hat}
   \max \left( F_{d/2-1,d/2+1}(\rho), F_{(d-1)/2,\sqrt{d^2-1}/4}(\rho) \right)
   \le \hat{\kappa}
   \le F_{(d-1)/2,(d+1)/2}(\rho),
 \end{equation}
-where 
+valid for for $0 \le \rho < 1$, where 
 \begin{displaymath}
   F_{\alpha,\beta}(\rho) = 
   \frac{\rho}{1 - \rho^2}
@@ -383,17 +436,114 @@ The difference between the upper and lower bound is at most $3\rho
 / 2$ for all $0 \le \rho < 1$, and the difference between the lower
 bound and $\hat{\kappa}$ tends to 0 as $\rho \to 1-$.
 
-Clearly, the availability of such bounds makes it possible to determine
-$\hat{\kappa}$ using numerical methods which are able to detect the root
-of a function inside a specified interval (such as \fct{uniroot} in
-\proglang{R}). 
+Convex combinations of the lower and the upper bounds can be employed as
+starting values for the above iteration schemes (which require a single
+starting point).  In addition, as these bounds actually give an interval
+known to contain the unique root $\hat{\kappa}$ of the function $\kappa
+\mapsto A_d(\kappa) - \rho$, one can use them as starting values for
+root finding methods which iteratively refine intervals containing the
+solution, such as simple bisection (as provided by \fct{uniroot} in
+\proglang{R}), hybrid algorithms combining derivative-based (Newton or
+Halley) and bisection steps
+\citep[e.g.][page~366]{vMF:Press+Teukolsky+Vetterling:2002}, or the
+Newton-Fourier method \citep[e.g.][pages~62--64]{vMF:Atkinson:1989}.
+One can show that $A_d$ is concave (e.g., using Theorem~11 in
+\citet{vMF:Hornik+Gruen:2013} which establishes that $A_d = R_{d/2-1}$
+is the pointwise minimum of concave functions, and hence concave):
+hence, employing the above bounds and a variant of the Newton-Fourier
+method for strictly increasing concave functions yields a quadratically
+convergent iterative scheme for determining $\hat{\kappa}$.
+
+\subsection{Illustrative example: household expenses}\label{sec:illustr-exampl-hous-data}
+
+To illustrate the use of the vMF distribution to model data on the
+sphere we use the \code{household} data set from package \pkg{HSAUR2}
+\citep{vMF:Everitt+Hothorn:2013}. The data are part of a data set
+collected from a survey on household expenditures and give the
+expenses of 20 single men and 20 single women on four commodity
+groups. In the following we will focus only on three of those
+commodity groups (housing, food and service) to have 3-dimensional
+data which is easier to visualize.  
+
+<<illustration1, echo=false>>=
+data("household", package = "HSAUR2")
+x <- as.matrix(household[, c(1:2, 4)])
+gender <- household$gender
+
+theta <- rbind(female = movMF(x[gender == "female",], k = 1)$theta, 
+               male = movMF(x[gender == "male",], k = 1)$theta)
+   
+set.seed(2008)
+vMFs <- lapply(1:5, function(K) 
+  movMF(x, k = K, control= list(nruns = 20)))
+@ 
+
+<<echo=false>>=
+kappa <- row_norms(theta)
+tab2 <- table(max.col(vMFs[[2]]$P), household$gender)
+mc2 <- min(c(sum(diag(tab2)), sum(tab2) - sum(diag(tab2))))
+tab3 <- table(max.col(vMFs[[3]]$P), household$gender)
+@ 
+
+The data points are projected onto the sphere by normalizing them to
+have length one. Thus, in the following analysis we are interested in
+finding groups of households which lie in a similar direction, i.e.,
+the angle between the observations is small and we are not interested
+in differences in their total absolute expenses.
+
+The data points on the sphere are visualized in
+Figure~\ref{fig:household-example} on the top left. Using the gender
+information, vMF distributions are fitted to the male and the female
+observations separately. The fitted distributions are visualized
+together with the mean direction indicated by a cross and with confidence
+circles of probability 50\% (full lines) and 95\% (dashed
+lines). Clearly the females have a smaller dispersion as indicated by
+the estimated $\kappa$ which is equal to
+\Sexpr{round(kappa[1],digits=2)}, as compared to the $\kappa$ of the
+males which is given by \Sexpr{round(kappa[2],digits=2)}.
+
+\begin{figure}[t!]
+  \centering
+<<fig=true, echo=false, results=hide, width=8, height=6>>=
+par(mar = 0.1 + c(0, 0.5, 2, 0), mfrow = c(2, 2))
+plotGlobe(x, household$gender, main = "Data", 
+          theta = -30, phi = 10, zlim = c(0, 1))
+
+plotGlobe(x, household$gender, theta, main = "Known group membership", 
+          theta = -30, phi = 10, zlim = c(0, 1))
+
+mu <- lapply(vMFs, function(x) x$theta / row_norms(x$theta))
+ordering <- lapply(mu, function(x) order(x[,1], decreasing = TRUE))
+class <- alpha <- kappa <- theta <- vector("list", length(ordering))
+for (i in seq_along(ordering)) {
+   alpha[[i]] <- vMFs[[i]]$alpha[ordering[[i]]]
+   mu[[i]] <- mu[[i]][ordering[[i]],,drop=FALSE]
+   theta[[i]] <- vMFs[[i]]$theta[ordering[[i]],,drop=FALSE]
+   kappa[[i]] <- row_norms(vMFs[[i]]$theta[ordering[[i]],,drop=FALSE])
+   class[[i]] <- max.col(vMFs[[i]]$P[,ordering[[i]]])
+}
+	  
+for (k in 2:3) {
+  plotGlobe(x, class[[k]], theta[[k]], 
+            main = paste("Mixtures of vMFs with K =", k),
+            theta = -30, phi = 10, zlim = c(0, 1))
+}
+@ 
+\setkeys{Gin}{width=0.8\textwidth}
+\caption{Household expenses data with gender indicated by color after
+  projection to the sphere at the top left, estimated vMF
+  distributions with confidence circles for each gender group
+  separately at the top right and the estimated mixtures of vMF
+  distributions with $K = 2$ and $K = 3$ with confidence circles at
+  the bottom.}
+  \label{fig:household-example}
+\end{figure}
 
 %%------------------------------------------------------------------------
 %%------------------------------------------------------------------------
 \section{Finite mixtures of vMF distributions}\label{sec:finite-mixtures-vmf}
 
-The mixture model with $K$ components which correspond to $K$
-groups is given by
+The mixture model with $K$ components is given by
 \begin{align*}
   h(x | \Theta) & = \sum_{k = 1}^K \pi_k f(x | \theta_k),
 \end{align*}
@@ -410,11 +560,11 @@ This is straightforwardly achieved by first sampling class ids $z \in
 \ldots, \pi_K$, and then sampling the data from the respective vMF
 distributions with parameter $\theta_k$.
 
-\subsection{Estimating the parameters of mixtures of vMF distributions}
+\subsection{Estimating the parameters of mixtures of vMF distributions}\label{sec:estim-param-mixt}
 
 EM algorithms for ML estimation of the parameters of mixtures of vMF
 distributions are given in \citet{vMF:Dhillon+Sra:2003} and
-\citet{vMF:Banerjee+Dhillon+Ghosh:2005}. The EM algorithm exploits that
+\citet{vMF:Banerjee+Dhillon+Ghosh:2005}. The EM algorithm exploits the
 fact that the complete-data log-likelihood where the component
 memberships of the observations are known is easier to maximize than
 the observed-data log-likelihood. 
@@ -436,7 +586,7 @@ the following steps:
     Start the EM algorithm with an M-step.
   \end{enumerate}
 \item Repeat the following steps until the maximum number of
-  iterations is reached or the converence criterion is met.
+  iterations is reached or the convergence criterion is met.
   \begin{description}
   \item[E-step:] Because the complete-data log-likelihood is linear in
     the missing data which correspond to the component memberships,
@@ -454,6 +604,9 @@ the following steps:
       - \frac{C_d'(\hat{\kappa}_k)}{C_d(\hat{\kappa}_k)} &=
       \frac{\|\sum_{i=1}^n p(k|x_i, \Theta) x_i\|}{\sum_{i=1}^n p(k|x_i, \Theta)}. 
     \end{align*}
+    $\hat{\kappa}_k$ can be determined via the approximation of
+    Equation~\eqref{eq:kappa_hat_approx}, or one of the improved
+    methods discussed in Section~\ref{sec:estim-param-vmf}.
   \item[Convergence check:] Assess convergence by checking
     \begin{enumerate}[(a)]
     \item if the relative absolute change in the
@@ -462,10 +615,7 @@ the following steps:
     \item if the relative absolute change in parameters is smaller
       than a threshold $\epsilon_2$.
     \end{enumerate}
-    If converged, stop the algorithm.
-    
-    In the following we will only use condition (a) to check for
-    convergence.
+    If converged, stop the algorithm.   
   \end{description}
 \end{enumerate}
 
@@ -486,16 +636,22 @@ M-step:
       \right.
   \end{align*}
 \end{description}
-
-$\hat{\kappa}_k$ in the M-step can be determined via the approximation
-of Equation~\eqref{eq:kappa_hat_approx}, or one of the improved
-methods discussed in Section~\ref{sec:estim-param-vmf}.
+This algorithm is also referred to as Classification EM algorithm in
+the literature \citep{vMF:Celeux+Govaert:1992}. A further variant of
+the EM algorithm also considered for example in
+\cite{vMF:Celeux+Govaert:1992} would be the Stochastic EM where
+instead of an hardening step a stochastic step is added between E- and
+M-step:
+\begin{description}
+\item[S-step:] Assign at random each observation to one component with
+  probability equal to its a-posteriori probability.
+\end{description}
 
 The algorithm above determines the parameter estimates if the
 concentration parameters are allowed to vary freely over components. An
 alternative model specification could be to impose the restriction
 that the concentration parameters are the same for each
-component. This has the advantage that the groups will be of
+component. This has the advantage that the clusters will be of
 comparable compactness and that spurious solutions containing small
 components with very large concentration parameters are eliminated. In
 the following we derive how the M-step needs to be modified if the
@@ -518,15 +674,15 @@ Lagrangian becomes
     \sum_k
     \left(
       \sum_i \log(C_d(\kappa)) p(k|x_i,\Theta) +
-      \sum_i \kappa \mu_k' x_i p(k|x_i,\Theta)
+      \sum_i \kappa \mu_k^{\top} x_i p(k|x_i,\Theta)
     \right)
-    + \lambda_k (1 - \mu_k' \mu_k)} \\
+    + \lambda_k (1 - \mu_k^{\top} \mu_k)} \\
   &=& \log(C_d(\kappa)) \sum_{k,i} p(k|x_i,\Theta)
-  + \kappa \sum_{k,i} \mu_k' x_i p(k|x_i,\Theta)
-  + \lambda_k (1 - \mu_k' \mu_k) \\
+  + \kappa \sum_{k,i} \mu_k^{\top} x_i p(k|x_i,\Theta)
+  + \lambda_k (1 - \mu_k^{\top} \mu_k) \\
   &=& n \log(C_d(\kappa))
-  + \kappa \sum_{k,i} \mu_k' x_i p(k|x_i,\Theta)
-  + \lambda_k (1 - \mu_k' \mu_k).
+  + \kappa \sum_{k,i} \mu_k^{\top} x_i p(k|x_i,\Theta)
+  + \lambda_k (1 - \mu_k^{\top} \mu_k).
 \end{eqnarray*}
 Setting partials with respect to $\mu_k$ and $\lambda_k$ to zero as in
 the reference gives (again)
@@ -537,7 +693,7 @@ the reference gives (again)
 and with these $\mu_k$ we obtain for $\kappa$ that
 \begin{displaymath}
   0 =
-  - A_d(\kappa) n + \sum_{k,i} \mu_k' x_i p(k|x_i,\Theta) =
+  - A_d(\kappa) n + \sum_{k,i} \mu_k^{\top} x_i p(k|x_i,\Theta) =
   - A_d(\kappa) n + \sum_k \left\|\sum_i x_i p(k|x_i,\Theta)\right\|,
 \end{displaymath}
 i.e., $\kappa$ needs to solve the equation
@@ -546,12 +702,71 @@ i.e., $\kappa$ needs to solve the equation
   \frac{1}{n} \sum_k \left\|\sum_i x_i p(k|x_i,\Theta)\right\|.
 \end{displaymath}
 
-\newpage
-%%------------------------------------------------------------------------
-%%------------------------------------------------------------------------
-\section[Main fitting function movMF()]{Main fitting function
-  \fct{movMF}}\label{sec:main-fitt-funct}
+\subsection{Illustrative example: household expenses}\label{sec:illustr-exampl-hous-movMF}
 
+In the following the gender information is not used and it is
+investigated if finite mixtures allow to unravel a distinction between
+male and female respondents in their household expenses. Assuming that
+it is known that there are two underlying unobserved groups, a mixture
+with two components is fitted. The results are visualized in
+Figure~\ref{fig:household-example} at the bottom left. The colors are
+according to assignments to components using the maximum a-posteriori
+probabilities.  These assignments lead to \Sexpr{c("one")[mc2]}
+misclassification, i.e., one female is assigned to the component with
+the higher dispersion. The estimated parameters and the BIC value of
+the model are given in Table~\ref{tab:household-expenses}.
+
+If the number of components is assumed to be unknown, the Bayesian
+information criterion (BIC) can be used to select a suitable number of
+components \citep[see for example][Chapter
+6]{vMF:McLachlan+Peel:2000}. In this case the minimum BIC is obtained
+for three components if models in the range of $K = 1,\ldots,5$ are
+considered. The results of the mixture with $K = 3$ components are
+visualized in Figure~\ref{fig:household-example} at the bottom right
+and the estimated parameters and the BIC value are given in
+Table~\ref{tab:household-expenses}.  In this case the male respondents
+are split into two groups with less dispersion each and different mean
+directions. The \proglang{R} code for reproducing these results is
+provided in Section~\ref{sec:illustr-exampl-hous-code} after
+introducing package \pkg{movMF}.
+
+<<echo=false>>=
+X2 <- cbind(alpha[[2]], mu[[2]], kappa[[2]], c(BIC(vMFs[[2]]), NA))
+X2 <- format(round(X2, digits = 2), nsmall = 2)
+X2[1,6] <- paste("$", X2[1,6], "$", sep = "")
+X2 <- gsub("NA", "  ", X2)
+X2 <- apply(cbind(c("$K = 2$", ""), X2), 1, paste, collapse = "&")
+
+X3 <- cbind(alpha[[3]], mu[[3]], kappa[[3]], c(BIC(vMFs[[3]]), rep(NA, 2)))
+X3 <- format(round(X3, digits = 2), nsmall = 2)
+X3[1,6] <- paste("$", X3[1,6], "$", sep = "")
+X3 <- gsub("NA", "  ", X3)
+X3 <- apply(cbind(c("$K = 3$", rep("", 2)), X3), 1, paste, collapse = "&")
+@ 
+
+\begin{table}[t!]
+  \centering
+  \begin{tabular}{lccccrc}
+    \hline
+    &$\pi$&\Sexpr{paste(colnames(x), collapse = "&")}&\multicolumn{1}{c}{$\kappa$}&BIC\\
+    \hline
+    \Sexpr{X2[1]}\\
+    \Sexpr{X2[2]}\\
+    \hline
+    \Sexpr{X3[1]}\\
+    \Sexpr{X3[2]}\\
+    \Sexpr{X3[3]}\\
+    \hline
+  \end{tabular}
+  \caption{Results of fitting mixtures of vMF distributions to the household expenses example.}
+  \label{tab:household-expenses}
+\end{table}
+%%------------------------------------------------------------------------
+%%------------------------------------------------------------------------
+\section[Software]{Software}\label{sec:software}
+
+\subsection[Main fitting function movMF()]{Main fitting function
+  \fct{movMF}}
 
 The main function in package \pkg{movMF} for fitting mixtures of vMF
 distributions is \fct{movMF}, with synopsis
@@ -579,33 +794,24 @@ The arguments for this function are as follows.
    \begin{itemize}
     \item If numbers are given, the concentration parameters are assumed
      to be fixed and are not estimated in the EM algorithm.
-   \item The method for solving for the concentration parameters can be
-     specified by one of \code{"Banerjee_et_al_2005"},
+   \item The method for solving for the concentration parameters can
+     be specified by one of \code{"Banerjee_et_al_2005"},
      \code{"Tanabe_et_al_2007"}, \code{"Sra_2012"},
-     \code{"Song_et_al_2012"}, \code{"uniroot"}, \code{"Newton"}
-     (default).
-     
-     Here, the first four correspond to the approximation, the fixed
-     point iteration and the truncated Newton and Halley approximation,
-     respectively, of \citet{vMF:Banerjee+Dhillon+Ghosh:2005},
-     \citet{vMF:Tanabe+Fukumizu+Oba:2007}, \citet{vMF:Sra:2012} and
-     \citet{vMF:Song+Liu+Wang:2012} described in
-     Section~\ref{sec:estim-param-vmf}.  Method \code{"uniroot"} uses
-     a straightforward call to \fct{uniroot} with initials bounds from
-     Equation~\ref{eq:bounds-for-kappa-hat}.  Finally, method
-     \code{"Newton"} performs a full Newton-Raphson iteration with the
-     lower bound from Equation~\ref{eq:bounds-for-kappa-hat} as
-     starting value.
-     
+     \code{"Song_et_al_2012"}, \code{"uniroot"}, \code{"Newton"},
+     \code{"Halley"}, \code{"hybrid"} and \code{"Newton_Fourier"}
+     (default). For more details on these methods see
+     Section~\ref{sec:estim-param-vmf}.
     \item For common concentration parameters a list with elements
      \code{common = TRUE} and a character string giving the estimation
      method needs to be provided.
    \end{itemize}
-  \item[\code{converge}:] Logical indicating if convergence of the
-   algorithm should be checked and if in this case the algorithm should
-   be stopped before the maximum number of iterations is reached. For
-   \code{E} equal to \code{"softmax"} this argument is set to
-   \code{FALSE}.
+ \item[\code{converge}:] Logical indicating if convergence of the
+   algorithm should be checked and if in this case the algorithm
+   should be stopped before the maximum number of iterations is
+   reached. For \code{E} equal to \code{"softmax"} this argument is
+   set to \code{FALSE}. Note that only condition (a) of the
+   convergence check (see Section~\ref{sec:estim-param-mixt}) is
+   assessed, i.e., the relative change in the log-likelihood values.
   \item[\code{maxiter}:] Integer indicating the maximum number of
    iterations of the EM algorithm.
    (Default: 100.)
@@ -620,27 +826,31 @@ The arguments for this function are as follows.
     observations or if equal to \code{TRUE} the class memberships are
     obtained from the attributes of the data. In this way the class
     memberships are for example stored if data is generated using
-    function \code{rmovMF()}. In this case the EM algorithm is stopped
-    after one iteration, i.e., the parameter estimates are determined
-    conditional on the known true class memberships.
-  \item[\code{start}:] Allows to specify the starting values used in
-    the EM algorithm. It can either be a list of matrices where each
-    matrix contains in each row the a-posteriori probabilities of the
-    observations or a list of vectors containing component assignments
-    for the observations. Alternatively it can be a character vector
-    with entries \code{"i"}, \code{"p"}, \code{"S"} or \code{"s"}. The
+    function \code{rmovMF()}. If this argument is specified, the EM
+    algorithm is stopped after one iteration, i.e., the parameter
+    estimates are determined conditional on the known true class
+    memberships.
+  \item[\code{start}:] Allows to specify the starting values used for
+    initializing the EM algorithm which then starts with an M-step. It
+    can either be a list of matrices where each matrix contains the
+    a-posteriori probabilities of the observations or a list of
+    vectors containing component assignments for the
+    observations. Alternatively it can be a character vector with
+    entries \code{"i"}, \code{"p"}, \code{"S"} or \code{"s"}. The
     length of the vector specifies how many different initializations
     are made. \code{"i"} indicates to randomly assign component
     memberships to the observations. The latter three draw
-    observations as protoypes and determine a-posteriori probabilities
-    by taking the implied cosine dissimilarities between observations
-    and prototypes. \code{"p"} randomly picks observations as
-    prototypes, \code{"S"} takes the first prototype to minimize total
-    cosine dissimilarity to the observations, and then successively
-    picks observations farthest away from the already picked
-    prototypes.  For \code{"s"} one takes a randomly chosen
-    observation as the first prototype, and then proceeds as for
-    \code{"S"}.
+    observations as prototypes and determine a-posteriori
+    probabilities by taking the implied cosine dissimilarities between
+    observations and prototypes. \code{"p"} randomly picks
+    observations as prototypes, \code{"S"} takes the first prototype
+    to minimize the total cosine dissimilarity to the observations,
+    and then successively picks observations farthest away from the
+    already picked prototypes.  For \code{"s"} one takes a randomly
+    chosen observation as the first prototype, and then proceeds as
+    for \code{"S"}. For more details on these initialization methods
+    see package \pkg{skmeans} which uses the same initialization
+    schemes.
   \item[\code{nruns}:] An integer indicating the number of repeated
     runs of the EM algorithm with random initialization. This argument
     is ignored if either \code{ids} or \code{start} are specified.
@@ -654,28 +864,52 @@ The arguments for this function are as follows.
   \end{description}
 \end{description}
 
-The object returned by \fct{movMF} is an \proglang{S}3 class called
-\code{"movMF"} with methods \fct{print}, \fct{coef}, \fct{logLik} and
+\subsection[Additional functionality in  movMF]{Additional functionality in \pkg{movMF}}
+
+The object returned by \fct{movMF} is an \proglang{S3} class called
+`\code{movMF}' with methods \fct{print}, \fct{coef}, \fct{logLik} and
 \fct{predict} (obtains either the component assignments or the matrix
-of a-posteriori probabilities).
+of a-posteriori probabilities). Additional functionality available in
+the package includes \fct{rmovMF} for drawing from a mixture of vMF
+distributions and \fct{dmovMF} for evaluating the mixture density.
 
-Additional functionality available in the package includes
-\fct{rmovMF} for drawing from a mixture of vMF distributions and
-\fct{dmovMF} for evaluating the mixture density. 
+\subsection{Illustrative example: household expenses}\label{sec:illustr-exampl-hous-code}
 
-\section{Numerical Issues}
+In the following the code for reproducing the results presented in
+Section~\ref{sec:illustr-exampl-hous-movMF} is provided.  After
+loading the dataset the three columns of interest are selected from
+the expenses and stored in variable \code{x}. Then the classification
+variable \code{gender} is also extracted. First \code{movMF()} is used
+to fit a single vMF distribution to the two separate sub-samples and
+then mixtures are fitted with number of components varying from 1 to
+5. To avoid reporting sub-optimal solutions where the EM algorithm was
+trapped in a local optimum, the best result from 20 random
+initializations is returned.
+
+<<eval=false>>=
+<<illustration1>>
+@ 
+
+The BIC values for the different mixtures can be obtained compared
+using
+<<>>=
+sapply(vMFs, BIC)
+@ 
+
+\section{Numerical issues}
 \label{sec:numerics}
 
-As previously shown, computing log-likelihoods for (mixtures of) vMF
-distributions on $\R^d$ requires the computation of $\log(H_{d/2-1})$,
-where
+In what follows it will be convenient to write
 \begin{displaymath}
   H_\nu(\kappa)
   = \pFq{0}{1}(; \nu + 1; \kappa^2 / 4)
-  = \frac{\Gamma(\nu + 1)}{(\kappa / 2)^\nu} I_\nu(\kappa),
+  = \frac{\Gamma(\nu + 1)}{(\kappa / 2)^\nu} I_\nu(\kappa).
 \end{displaymath}
-and ML estimation of concentration parameters amounts to solving
-equations of the form $A_d(\kappa) = \rho$, where
+As shown in Section~\ref{sec:vmf-distribution}, computing
+log-likelihoods for (mixtures of) vMF distributions on $\R^d$ requires
+the computation of $\log(H_{d/2-1})$, and ML estimation of concentration
+parameters amounts to solving equations of the form $A_d(\kappa)=\rho$,
+where
 \begin{displaymath}
   A_d(\kappa)
   = \frac{I_{d/2}(\kappa)}{I_{d/2-1}(\kappa)}
@@ -699,6 +933,8 @@ does not help in situations where $1 \ll \kappa \ll \nu$: e.g., for
 $\kappa = 6000$ and $\nu = 10000$, $H$ overflows whereas $I$
 underflows (even though \proglang{R} gives \verb|Inf| and \verb|0| for
 the cases without and with exponential scaling, respectively).
+
+\subsection[Computing A]{Computing $A_d$}
 
 One can use the Gauss continued fraction
 \begin{displaymath}
@@ -733,7 +969,7 @@ the Perron continued fraction
 \end{displaymath}
 is numerically more stable (as computing it by forward recursion only
 accumulates positive terms, whereas for the Gauss continued fraction
-the terms alternate in sign), and converges substiantally faster for
+the terms alternate in sign), and converges substantially faster for
 positive $z \gg \nu$.  Hence, by default we compute $A$ via the Perron
 continued fraction \citep[with implementation based on Equation~3.3$'$
 in][]{vMF:Gautschi+Slavik:1978}, and additionally provide computation
@@ -749,19 +985,19 @@ necessary for $\kappa = 0$) to use the approximation
   \qquad
   \kappa \to 0
 \end{displaymath}
-\citep[Equation 5]{vMF:Schou:1978}.  The $O(\kappa)^5$ can be made more
+\citep[Equation 5]{vMF:Schou:1978}.  The $O(\kappa^5)$ can be made more
 precise by using the series representation
 $I_\nu(z) = \sum_{n=0}^\infty (z/2)^{2n + \nu} / (n! \Gamma(n + \nu +
 1))$ so that for $\kappa \to 0$,
 \begin{eqnarray*}
   A_d(\kappa)
-  &=& \frac{(\kappa/2)^{d/2}
+  &=& \frac{\displaystyle (\kappa/2)^{d/2}
     \left(
       \frac{1}{\Gamma(d/2 + 1)} +
       \frac{\kappa^2/4}{\Gamma(d/2 + 2)} +
       \frac{\kappa^4/32}{\Gamma(d/2 + 3)} +
       O(\kappa^6)
-    \right)}{
+    \right)}{\displaystyle
     (\kappa/2)^{d/2-1}
     \left(
       \frac{1}{\Gamma(d/2)} +
@@ -769,11 +1005,11 @@ $I_\nu(z) = \sum_{n=0}^\infty (z/2)^{2n + \nu} / (n! \Gamma(n + \nu +
       \frac{\kappa^2/32}{\Gamma(d/2 + 2)} +
       O(\kappa^6)
     \right)} \\
-  &=& \frac{\kappa}{2}
+  &=& \frac{\displaystyle \kappa}{2}
   \frac{\frac{2}{d} +
     \frac{\kappa^2}{d(d+2)} +
     \frac{\kappa^4}{4d(d+2)(d+4)} +
-    O(\kappa^6)}{
+    O(\kappa^6)}{\displaystyle
     1 +
     \frac{\kappa^2}{2d} +
     \frac{\kappa^4}{8d(d+2)} +
@@ -805,6 +1041,8 @@ so that
 From this approximations for $A'$ and $A''$ can be obtained by
 term-wise differentiation and also used for $\kappa$ close to 0.
 
+\subsection[Computing log(H)]{Computing $\log(H_{\nu})$}
+
 Write
 \begin{displaymath}
   R_\nu(\kappa) =
@@ -830,10 +1068,11 @@ and $\nu$.  We thus have
   \right)
 \end{equation}
 (from which the bounds of Equation~\ref{eq:bounds-for-kappa-hat} are
-obtained by inversion).  In addition, using results in 
+obtained by inversion).  In addition, using results in
 \citet[][Equations~5 and 6]{vMF:Schou:1978}, one can show that
-$G_{\nu,\nu+2}$ and $G_{\nu+1/2,\beta_{SS}(\nu)}$ are second order exact
-approximations for $\kappa \to 0$ and $\kappa \to \infty$, respectively.
+$G_{\nu,\nu+2}$ and $G_{\nu+1/2,\beta_{SS}(\nu)}$ are second order
+exact approximations for $\kappa \to 0$ and $\kappa \to \infty$,
+respectively \citep{vMF:Hornik+Gruen:2013}.
 
 As $\log(H_\nu)' = R_\nu$ (and $H_\nu(0) = 1$), integration gives
 \begin{displaymath}
@@ -978,7 +1217,7 @@ For non-negative $t$ and $\tau$,
   \log \frac{t+\tau}{t}
   = \int_0^\tau \frac{1}{t+s} \, ds
   \ge \frac{1}{t + \tau} \int_0^\tau ds
-  = \frac{\tau}{t + \tau},
+  = \frac{\tau}{t + \tau}.
 \end{displaymath}
 Hence, with $t = \alpha + \beta_U$ and $\tau = \beta_L - \beta_U$,
 \begin{displaymath}
@@ -1054,9 +1293,9 @@ implemented in package \pkg{movMF}, using the upper bound in
 Equation~\ref{eq:bounds-for-log-H} as approximation $L_\nu$ to
 $\log(H_\nu)$.
 
-Alternatively, one can use the bounds to obtain refined
-strategies of computing $\log(H)$ using available codes for modified
-Bessel functions.  We have
+Alternatively, one can use the bounds to obtain refined strategies of
+computing $\log(H_\nu)$ using available codes for modified Bessel
+functions.  We have
 \begin{displaymath}
   \log(H_\nu(\kappa))
   = \log(I_\nu(\kappa)) - \nu \log(\kappa/2) + \log(\Gamma(\nu + 1))
@@ -1154,12 +1393,12 @@ matrix from the corpus. For constructing the document-term matrix each
 abstract needs to be tokenized (i.e., split into words, e.g., by using
 whitespace characters as separators) and transformed to lower case.
 Punctuation as well as numbers can be removed and the words can be
-stemmed (i.e., inflected words are reduced to their base form). In
+stemmed (i.e., inflected words are reduced to a base form). In
 addition a minimum length can be imposed on the words as well as a
 minimum and maximum frequency inside an abstract required.
 
 The vector of abstracts is transformed to an object which has an
-extended class of \code{"Source"} using \fct{VectorSource}. This
+extended class of `\code{Source}' using \fct{VectorSource}. This
 object is used as input for \fct{Corpus} to generate the corpus. The
 map from the corpus to the document-term matrix is performed using
 \fct{DocumentTermMatrix}. The control argument of
@@ -1184,17 +1423,16 @@ useR_2008_abstracts_DTM <-
 @ 
 
 Method \code{"MC"} was used for tokenizing. This method aims at
-producing the same results as \proglang{MC}
-(\url{http://www.cs.utexas.edu/users/dml/software/mc/}), which is a
-toolkit for creating vector models from text documents
-\citep{vMF:Dhillon+Modha:2001}. In addition the words are stemmed, a
-set of stopwords are removed and all words are kept which have a length of
+producing the same results as the \pkg{MC} toolkit for creating vector
+models from text documents \citep{vMF:Dhillon+Modha:2001,
+  vMF:Dhillon+Fan+Guan:2001}. In addition the words are stemmed, a set
+of stopwords are removed and all words are kept which have a length of
 at least 3.
 
 The resulting document-term matrix has
 \Sexpr{nrow(useR_2008_abstracts_DTM)} rows and
 \Sexpr{ncol(useR_2008_abstracts_DTM)} columns.  The ten most frequent
-terms (occuring in different abstracts) are the following.
+terms (occurring in different abstracts) are the following.
 
 <<>>=
 library("slam")
@@ -1254,7 +1492,6 @@ useR_2008_movMF_common <-
 <<echo=false, results=hide>>=
 if(cache & file.exists("movMF.rda")) {
   load("movMF.rda")
-  set.seed(2008)
   library("movMF")
   Ks <- c(1:5, 10, 20)
 } else {
@@ -1304,6 +1541,7 @@ concentration parameters are constrained to be equal over components
 and the number of components is equal to 2.
 
 <<>>=
+set.seed(2008)
 best_model <- movMF(useR_2008_abstracts_DTM, k = 2, nruns = 20,
                     kappa = list(common = TRUE))
 @ 
@@ -1336,7 +1574,7 @@ tab <- table(Keyword = unlist(keywords),
              Component = rep(clustering, sapply(keywords, length)))
 @ 
 
-In the following only keywords are shown which had more than 8
+In the following only keywords are shown which have more than 8
 abstracts assigned to them.
 
 <<>>=
@@ -1349,12 +1587,12 @@ where the keywords assigned relate to infrastructure or
 implementational issues such as connectivity, high performance
 computing and user interfaces are associated with one component,
 whereas abstracts which are related to statistical modeling issues
-such as bioinformatics, biostatistcs and modeling are more likely to
+such as bioinformatics, biostatistics and modeling are more likely to
 be assigned to the other component.
 
-\begin{figure}
+\begin{figure}[t!]
   \centering
-<<fig=true, height=8, echo=false>>=
+<<fig=true, height=6, echo=false, width=10>>=
 library("vcd")
 mosaic(tab, shade = TRUE, 
        labeling_args = list(rot_labels = 0, just_labels = c("center", "right"), 
@@ -1370,15 +1608,9 @@ mosaic(tab, shade = TRUE,
 \section{Summary}\label{sec:summary}
 
 An \proglang{R} package for fitting finite mixtures of vMF
-distributions is presented. A separate package was developed in
-addition to general purpose mixture modeling packages in \proglang{R}
-such as for example \pkg{flexmix} \citep{vMF:Leisch:2004,
-  vMF:Gruen+Leisch:2008}. This allows to take for example the special
-data structure into account. If this model class is applied in the
-context of text mining the input data will in general not only be
-high-dimensional, but also sparse. Using an implementation which
-allows to retain the sparse representation of the data therefore is
-crucial.
+distributions is presented. Special focus has been given on numerical
+issues when evaluating the log-likelihood as well as on methods for
+maximum likelihood estimation of the concentration parameter.
 
 A possible extension for package \pkg{movMF} would be to allow for
 more flexible distributions in the components which also have as
