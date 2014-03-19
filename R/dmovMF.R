@@ -24,7 +24,7 @@ function(x, theta, alpha)
     ## Internal use: no recycling.
     p <- ncol(x) / 2
     ## So s = d / 2 - 1 = p - 1.
-    kappa <- slam::row_norms(theta)
+    kappa <- row_norms(theta)
     G <- cadd(skmeans:::g_tcrossprod(x, theta),
               log(alpha) - lH(kappa, p - 1))
     log_row_sums(G)

@@ -202,7 +202,7 @@ function(x, k, control = list(), ...)
                 if(any(alpha == 0 & nu <= 0))
                     stop("Cannot handle empty components")
                 M <- skmeans:::g_crossprod(P, x)
-                norms <- slam::row_norms(M)
+                norms <- row_norms(M)
                 M <- M / ifelse(norms > 0, norms, 1)
                 ## If a cluster contains only identical observations,
                 ## Rbar = 1.
@@ -350,7 +350,7 @@ function(object, newdata = NULL,
         x <- skmeans:::row_normalize(newdata)
         theta <- object$theta
         alpha <- object$alpha
-        kappa <- slam::row_norms(theta)
+        kappa <- row_norms(theta)
         ## Could maybe check dimensions.
         ## Same as for E step in movMF().
         d <- nrow(theta)
@@ -765,9 +765,20 @@ function(Rbar, d, tol = 1e-6, maxiter = 100, step = step_Halley)
 ##
 ##   G_{\nu+1/2,\nu+3/2}^{-1}
 ##
-## as upper bound for R_{\nu}^{-1}, and
+## as upper bound for R_{\nu}^{-1}, and the antiderivative of
+## \min(G_{\nu,\nu+2},G_{\nu+1/2,beta_SS(\nu)}) which is given by
 ##
-##   \min(S_{\nu,\nu+2}, S_{\nu+1/2,\beta_{SS}(\nu)})
+##   S_{\nu+1/2,\beta_{SS}(\nu)}(kappa)
+##     - S_{\nu+1/2,\beta_{SS}(\nu)}(\min(kappa, \kappa_\nu))
+##     + S_{\nu,\nu+2}(\min(kappa, \kappa_\nu))
+##
+## where
+##
+##   \kappa_\nu = \sqrt{(3\nu + 11/2) (\nu + 3/2)}
+##
+## is the positive solution of
+##
+##   G_{\nu,\nu+2}(\kappa) = G_{\nu+1/2,beta_SS(\nu)}(\kappa)
 ##
 ## as approximation for \log(H_\nu).
 
@@ -851,12 +862,14 @@ function(kappa, nu)
     }
     ind <- ipk & ipn
     if(any(ind)) {
-        ## For \nu > 0, use the Amos-type approximation discussed above.
+        ## For \nu > 0, use the Amos-type based approximation discussed
+        ## above.
         kappa <- kappa[ind]
         nu <- nu[ind]
-        y[ind] <-
-            pmin(S(kappa, nu, nu + 2),
-                 S(kappa, nu + 1/2, beta_SS(nu)))
+        beta <- beta_SS(nu)
+        kappa_L <- pmin(kappa, sqrt((3 * nu + 11 / 2) * (nu + 3 / 2)))
+        y[ind] <- S(kappa, nu + 1/2, beta) +
+            (S(kappa_L, nu, nu + 2) - S(kappa_L, nu + 1/2, beta))
     }
     y
 }

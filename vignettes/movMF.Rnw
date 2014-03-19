@@ -326,6 +326,7 @@ multiplied from the left with a matrix where the first $(d-1)$ columns
 consist of unitary basis vectors of the subspace orthogonal to $\mu$ and
 the last column is equal to $\mu$.
 
+\newpage
 \subsection{Estimating the parameters of the vMF distribution}\label{sec:estim-param-vmf}
 Using the common parametrization by $\kappa$ and $\mu$, the
 log-likelihood of a sample $x_1, \ldots, x_n$ from the vMF distribution
@@ -416,7 +417,7 @@ $A_d(\kappa_t)$, i.e.,
   \frac{d^2 - d - 2 \kappa^2}{\kappa^2} A_d(\kappa_t) - \frac{d - 1}{\kappa}.
 \end{displaymath}
 
-The results in \citet{vMF:Hornik+Gruen:2012b} yield the substantially
+The results in \citet{vMF:Hornik+Gruen:2014a} yield the substantially
 improved bounds
 \begin{equation}
   \label{eq:bounds-for-kappa-hat}
@@ -464,7 +465,7 @@ expenses of 20 single men and 20 single women on four commodity
 groups. In the following we will focus only on three of those
 commodity groups (housing, food and service) to have 3-dimensional
 data which is easier to visualize.  
-
+%
 <<illustration1, echo=false>>=
 data("household", package = "HSAUR2")
 x <- as.matrix(household[, c(1:2, 4)])
@@ -477,14 +478,14 @@ set.seed(2008)
 vMFs <- lapply(1:5, function(K) 
   movMF(x, k = K, control= list(nruns = 20)))
 @ 
-
+%
 <<echo=false>>=
 kappa <- row_norms(theta)
 tab2 <- table(max.col(vMFs[[2]]$P), household$gender)
 mc2 <- min(c(sum(diag(tab2)), sum(tab2) - sum(diag(tab2))))
 tab3 <- table(max.col(vMFs[[3]]$P), household$gender)
 @ 
-
+%
 The data points are projected onto the sphere by normalizing them to
 have length one. Thus, in the following analysis we are interested in
 finding groups of households which lie in a similar direction, i.e.,
@@ -607,11 +608,11 @@ the following steps:
     $\hat{\kappa}_k$ can be determined via the approximation of
     Equation~\eqref{eq:kappa_hat_approx}, or one of the improved
     methods discussed in Section~\ref{sec:estim-param-vmf}.
-  \item[Convergence check:] Assess convergence by checking
+  \item[Convergence check:] Assess convergence by checking (either or both)
     \begin{enumerate}[(a)]
     \item if the relative absolute change in the
       log-likelihood values is smaller than a threshold
-      $\epsilon_1$ and / or
+      $\epsilon_1$;
     \item if the relative absolute change in parameters is smaller
       than a threshold $\epsilon_2$.
     \end{enumerate}
@@ -729,7 +730,7 @@ are split into two groups with less dispersion each and different mean
 directions. The \proglang{R} code for reproducing these results is
 provided in Section~\ref{sec:illustr-exampl-hous-code} after
 introducing package \pkg{movMF}.
-
+%
 <<echo=false>>=
 X2 <- cbind(alpha[[2]], mu[[2]], kappa[[2]], c(BIC(vMFs[[2]]), NA))
 X2 <- format(round(X2, digits = 2), nsmall = 2)
@@ -770,11 +771,11 @@ X3 <- apply(cbind(c("$K = 3$", rep("", 2)), X3), 1, paste, collapse = "&")
 
 The main function in package \pkg{movMF} for fitting mixtures of vMF
 distributions is \fct{movMF}, with synopsis
-
+%
 <<echo=false>>=
 cat(paste("R> ", prompt(movMF, filename = NA)$usage[[2]]))
 @ 
-
+%
 The arguments for this function are as follows.
 \begin{description}
 \item[\normalfont \code{x}:] A numeric data matrix, with rows corresponding to
@@ -885,11 +886,11 @@ then mixtures are fitted with number of components varying from 1 to
 5. To avoid reporting sub-optimal solutions where the EM algorithm was
 trapped in a local optimum, the best result from 20 random
 initializations is returned.
-
+%
 <<eval=false>>=
 <<illustration1>>
 @ 
-
+%
 The BIC values for the different mixtures can be obtained compared
 using
 <<>>=
@@ -1138,7 +1139,7 @@ $\beta_U \le \beta_L$ and $G_{\alpha,\beta_U} \ge G_{\alpha,\beta_L}$.
 Hence,
 \begin{displaymath}
   S_{\alpha,\beta_U}(\kappa) - S_{\alpha,\beta_L}(\kappa)
-  = \int_0^\kappa (G_{\alpha,\beta_U}(t) - G_{\alpha,\beta_L}(t)) dt
+  = \int_0^\kappa (G_{\alpha,\beta_U}(t) - G_{\alpha,\beta_L}(t)) \, dt
 \end{displaymath}
 is non-decreasing in $\kappa$, and attains its supremum for $\kappa \to
 \infty$.  Now,
@@ -1261,15 +1262,28 @@ These results can be used to derive the following approach to computing
 $\log(H_\nu)$.  Choose a threshold $\theta$ such that $e^\theta$ does
 not overflow and $e^{-\theta}$ does not underflow.  Using IEEE 754
 double precision floating point computations, we can take $\theta =
-700$.  Compute some convex combination of the lower and upper bounds in
-Equation~\ref{eq:bounds-for-log-H} (e.g., simply take the upper bound)
-or use $S_{\nu+1/2,\beta}(\kappa)$ with some $\beta_{SS}(\nu) \le \beta
-\le \nu + 3/2$ (e.g, $\beta = \nu + 1$) to obtain an approximation
-$L_\nu(\kappa)$ to $\log(H_\nu(\kappa))$ which we know has approximation
-error at most $s(0) < 1/2$.  If $L_\nu(\kappa) \le \theta - 1/2$ (so
-that $\log(H_\nu(\kappa)) \le \theta$), compute $H_\nu(\kappa)$ by its
-series expansion, and take the logarithm of this.  If $\theta - 1 / 2<
-L_\nu(\kappa) \le 2 \theta - 1$ so that
+700$.  Choose an approximation $L_\nu$ for $\log(H_\nu)$ for which
+$S_{\nu+1/2,\nu+3/2} \le L_\nu \le S_{\nu+1/2,\beta_{SS}(\nu)}$ for all
+$\kappa \ge 0$.  By the above, this has approximation error at most
+$s(0) < 1/2$.  Possible choices for $L_\nu$ are convex combinations of
+the lower and upper bounds in Equation~\ref{eq:bounds-for-log-H} (e.g.,
+simply take the upper bound) or  $S_{\nu+1/2,\beta}(\kappa)$ with some
+$\beta_{SS}(\nu) \le \beta \le \nu + 3/2$ (e.g, $\beta = \nu + 1$); in
+the package we use
+\begin{eqnarray*}
+  L_\nu(\kappa)
+  &=& \int_0^\kappa 
+  \min(G_{\nu,\nu+2}(t), G_{\nu+1/2,\beta_{SS}(\nu)}(t)) \, dt \\
+  &=& S_{\nu+1/2,\beta_{SS}(\nu)}(\kappa)
+  + (S_{\nu,\nu+2}(\min(\kappa,\kappa_\nu)) -
+  S_{\nu+1/2,\beta_{SS}(\nu)}(\min(\kappa,\kappa_\nu))),
+\end{eqnarray*}
+where $\kappa_\nu = \sqrt{(3\nu+11/2) (\nu+3/2)}$ is the positive root
+of the equation $G_{\nu,\nu+2}(\kappa) =
+G_{\nu+1/2,\beta_{SS}(\nu)}(\kappa)$.  Then if $L_\nu(\kappa) \le \theta 
+- 1/2$ (so that $\log(H_\nu(\kappa)) \le \theta$), compute
+$H_\nu(\kappa)$ by its series expansion, and take the logarithm of this.  
+If $\theta - 1 / 2< L_\nu(\kappa) \le 2 \theta - 1$ so that
 \begin{displaymath}
   |\log(H_\nu(\kappa)) - L_\nu(\kappa) / 2|
   \le |\log(H_\nu(\kappa)) - L_\nu(\kappa)| + L_\nu(\kappa) / 2 \le
@@ -1289,9 +1303,7 @@ logarithm of the sum of the scaled series.  Otherwise, use the
 approximation $L_\nu(\kappa)$ (note that with $\theta = 700$, this has
 a relative approximation error of about at most $1/2 \cdot 1/1400 \le
 0.0004$).  This is the approach for computing $\log(H_\nu)$ currently
-implemented in package \pkg{movMF}, using the upper bound in
-Equation~\ref{eq:bounds-for-log-H} as approximation $L_\nu$ to
-$\log(H_\nu)$.
+implemented in package \pkg{movMF}.
 
 Alternatively, one can use the bounds to obtain refined strategies of
 computing $\log(H_\nu)$ using available codes for modified Bessel
@@ -1365,6 +1377,7 @@ with additional terms (package \pkg{Bessel} allows up to 4 additional
 terms).  This strategy can readily be translated into a strategy for
 computing $\log(H_\nu)$.
 
+\newpage
 %%------------------------------------------------------------------------
 %%------------------------------------------------------------------------
 \setkeys{Gin}{width=\textwidth}
@@ -1381,11 +1394,11 @@ are available in the \proglang{R} data package
 
 The following code checks if the package is installed and if necessary
 installs it. Furthermore, the data contained in the package is loaded.
-
+%
 <<eval=false>>=
 <<corpus-package>>
 @ 
-
+%
 Using the \pkg{tm} package \citep{vMF:Feinerer+Hornik+Meyer:2008,
   vMF:Feinerer:2012} the data can be pre-processed by (1) generating a
 corpus from the vector of abstracts and (2) building a document-term
@@ -1406,7 +1419,7 @@ map from the corpus to the document-term matrix is performed using
 applied to determine the frequency vectors of term occurrences in each
 abstract. We use the titles and the abstracts together to
 construct the document-term matrix.
-
+%
 <<>>=
 library("tm")
 abstracts_titles <- 
@@ -1433,30 +1446,30 @@ The resulting document-term matrix has
 \Sexpr{nrow(useR_2008_abstracts_DTM)} rows and
 \Sexpr{ncol(useR_2008_abstracts_DTM)} columns.  The ten most frequent
 terms (occurring in different abstracts) are the following.
-
+%
 <<>>=
 library("slam")
 ColSums <- col_sums(useR_2008_abstracts_DTM > 0)
 sort(ColSums, decreasing = TRUE)[1:10]
 @ 
-
+%
 To reduce the dimension of the problem and omit terms which occur too
 frequently or too infrequently in the corpus to be of use when
 clustering the abstracts, we omit all terms which occur in less than 5
 abstracts and more than 90 abstracts.
-
+%
 <<>>=
 useR_2008_abstracts_DTM <- 
   useR_2008_abstracts_DTM[, ColSums >= 5 & ColSums <= 90]
 useR_2008_abstracts_DTM
 @ 
-
+%
 The data is transformed using TF-IDF weighting.
-
+%
 <<>>=
 useR_2008_abstracts_DTM <- weightTfIdf(useR_2008_abstracts_DTM)
 @ 
-
+%
 In the following different mixtures of vMF distributions are fitted to
 the training data when using 10-fold cross-validation and are compared
 based on the predictive log-likelihoods on the hold-out data to select
@@ -1466,7 +1479,7 @@ the same over components as well as where the concentration parameters
 are allowed to freely vary over components. For each training data set
 the EM algorithm is repeated 20 times with different random
 initializations.
-
+%
 <<fit-movMF, eval=false>>=
 set.seed(2008)
 library("movMF")
@@ -1488,7 +1501,7 @@ useR_2008_movMF_common <-
            logLik(m, useR_2008_abstracts_DTM[splits == s,])
          }))
 @ 
-
+%
 <<echo=false, results=hide>>=
 if(cache & file.exists("movMF.rda")) {
   load("movMF.rda")
@@ -1504,7 +1517,7 @@ if(cache) {
 }
 }
 @
-
+%
 In Figure~\ref{fig:logliks} the fitted models are compared using the
 cross-validated predictive log-likelihoods. The results for the models
 with free concentration parameters are on the left, for the models with
@@ -1539,21 +1552,21 @@ Following the conclusions of the comparison of the predictive
 log-likelihoods values we further investigate the model where the
 concentration parameters are constrained to be equal over components
 and the number of components is equal to 2.
-
+%
 <<>>=
 set.seed(2008)
 best_model <- movMF(useR_2008_abstracts_DTM, k = 2, nruns = 20,
                     kappa = list(common = TRUE))
 @ 
-
+%
 In the following we look at the 10 most important words of each fitted
 component:
-
+%
 <<>>=
 apply(coef(best_model)$theta, 1, function(x) 
       colnames(coef(best_model)$theta)[order(x, decreasing = TRUE)[1:10]])
 @ 
-
+%
 Clearly one component deals with issues related to infrastructure or
 implementation, while the other component is focusing more on
 statistical modeling.
@@ -1563,7 +1576,7 @@ analyzed by comparing the cluster membership with the keywords
 assigned to an abstract. Because each abstract might have several
 keywords assigned, the abstracts and their cluster assignments are
 accordingly repeated.
-
+%
 <<>>=
 clustering <- predict(best_model)
 keywords <- useR_2008_abstracts[,"Keywords"]
@@ -1573,15 +1586,14 @@ keywords <- sapply(keywords,
 tab <- table(Keyword = unlist(keywords), 
              Component = rep(clustering, sapply(keywords, length)))
 @ 
-
+%
 In the following only keywords are shown which have more than 8
 abstracts assigned to them.
-
+%
 <<>>=
-tab <- tab[rowSums(tab) > 8,]
-tab
+(tab <- tab[rowSums(tab) > 8, ])
 @ 
-
+%
 The table is also visualized in Figure~\ref{fig:mosaic}. Abstracts
 where the keywords assigned relate to infrastructure or
 implementational issues such as connectivity, high performance

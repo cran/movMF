@@ -1,5 +1,8 @@
 useDynLib("movMF", .registration = TRUE, .fixes = "C_")
 
+importFrom("slam", "row_norms")
+importFrom("stats", "rbinom", "rmultinom", "rnorm", "runif", "uniroot")
+
 export("movMF", "dmovMF", "rmovMF")
 
 S3method("coef", "movMF")

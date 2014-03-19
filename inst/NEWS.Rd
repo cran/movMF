@@ -1,6 +1,13 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
+\section{Changes in version 0.1-3}{
+  \itemize{
+    \item An improved approximation is used to calculate the normalizing
+    constants of the log-likelihoods.  See the package vignette for more
+    information.
+  }
+}
 \section{Changes in version 0.1-2}{
   \itemize{
     \item For determining the concentration parameters the following
