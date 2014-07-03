@@ -6,7 +6,11 @@ void rW(int *n, double *kappa, int *m, double *y)
     /* Follow Wood (1994). */
     double l = *kappa;
     double d = *m - 1;
-    double b = (- 2. * l + sqrt(4. * l * l + d * d)) / d;
+    /* Algebraically equivalent to
+         (-2. * l + sqrt(4. * l * l + d * d)) / d
+       as in the reference, but numerically more stable:
+    */
+    double b = d / (sqrt(4. * l * l + d * d) + 2. * l);
     double x = (1. - b) / (1. + b);
     double c = l * x + d * log(1. - x * x);
     double u, w, z;

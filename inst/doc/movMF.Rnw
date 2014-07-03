@@ -49,8 +49,8 @@
   over the components. 
   
   In this paper we describe the main fitting function of the package
-  and illustrate its application. We also discuss how
-  several numerical issues are resolved which occur for estimating the
+  and illustrate its application. We also discuss he
+  resolution of several numerical issues which occur for estimating the
   concentration parameters and for determining the normalizing
   constant of the von Mises-Fisher distribution.
   
@@ -189,10 +189,10 @@ the observations lie on the unit circle, is referred to as von Mises
 distribution. The vMF distribution has concentric contour lines
 similar to the multivariate normal distribution with the
 variance-covariance matrix being a multiple of the identity matrix. In
-fact \citet[][p.~173]{vMF:Mardia+Jupp:1999} point out that if $x$
+fact \citet[][page~173]{vMF:Mardia+Jupp:1999} point out that if $X$
 follows a multivariate normal distribution with mean parameter $\mu$
 which has length one and variance-covariance matrix $\kappa^{-1}I$,
-then the conditional distribution of $x$ given that it has length one
+then the conditional distribution of $X$ given that it has length one
 is a vMF distribution with mean direction parameter~$\mu$ and
 concentration parameter~$\kappa$.
 
@@ -230,12 +230,12 @@ shows how to draw samples from this distribution and how to determine
 the ML estimates of its parameters.  The extension to finite mixture
 models is covered in Section~\ref{sec:finite-mixtures-vmf} including
 again the methods for drawing samples and determining ML
-estimates. The \proglang{R} \citep{vMF:Team:2013} package \pkg{movMF}
+estimates. The \proglang{R} \citep{vMF:Team:2014} package \pkg{movMF}
 is presented in Section~\ref{sec:software} by describing the main
 fitting function \fct{movMF} in detail. The package is available from
 the Comprehensive \proglang{R} Archive Network at
 \url{http://CRAN.R-project.org/package=movMF}. Numerical issues when
-evaluating the density or determining the ML are discussed in
+evaluating the density or determining the ML estimates are discussed in
 Section~\ref{sec:numerics}. An illustrative application of the package
 using the abstracts from the talks at ``use\proglang{R}!  2008'', the
 3rd international \proglang{R} user conference, in Dortmund, Germany,
@@ -297,8 +297,11 @@ package \pkg{rstiefel} \citep{vMF:Hoff:2012}.
 \begin{enumerate}[Step 1.]
 \item Calculate $b$ using
   \begin{align*}
-    b = \frac{-2 \kappa + \sqrt{4 \kappa^2 + (d - 1)^2}}{d-1}.
+    b = \frac{d-1}{2 \kappa + \sqrt{4 \kappa^2 + (d - 1)^2}}.
   \end{align*}
+  Note that this calculation of $b$ is algebraically equivalent to the
+  one proposed in \citet{vMF:Wood:1994}, but numerically more stable.
+  
   Put $x_0 = (1 - b) / (1 + b)$ and $c = \kappa x_0 + (d - 1)
   \log(1-x^2_0)$.
 \item\label{item:z} Generate $Z \sim \text{Beta}((d-1)/2, (d-1)/2)$
@@ -326,7 +329,7 @@ multiplied from the left with a matrix where the first $(d-1)$ columns
 consist of unitary basis vectors of the subspace orthogonal to $\mu$ and
 the last column is equal to $\mu$.
 
-\newpage
+\pagebreak
 \subsection{Estimating the parameters of the vMF distribution}\label{sec:estim-param-vmf}
 Using the common parametrization by $\kappa$ and $\mu$, the
 log-likelihood of a sample $x_1, \ldots, x_n$ from the vMF distribution
@@ -425,7 +428,7 @@ improved bounds
   \le \hat{\kappa}
   \le F_{(d-1)/2,(d+1)/2}(\rho),
 \end{equation}
-valid for for $0 \le \rho < 1$, where 
+valid for $0 \le \rho < 1$, where 
 \begin{displaymath}
   F_{\alpha,\beta}(\rho) = 
   \frac{\rho}{1 - \rho^2}
@@ -437,25 +440,25 @@ The difference between the upper and lower bound is at most $3\rho
 / 2$ for all $0 \le \rho < 1$, and the difference between the lower
 bound and $\hat{\kappa}$ tends to 0 as $\rho \to 1-$.
 
-Convex combinations of the lower and the upper bounds can be employed as
-starting values for the above iteration schemes (which require a single
-starting point).  In addition, as these bounds actually give an interval
-known to contain the unique root $\hat{\kappa}$ of the function $\kappa
-\mapsto A_d(\kappa) - \rho$, one can use them as starting values for
-root finding methods which iteratively refine intervals containing the
-solution, such as simple bisection (as provided by \fct{uniroot} in
-\proglang{R}), hybrid algorithms combining derivative-based (Newton or
-Halley) and bisection steps
+Convex combinations of the lower and the upper bounds can be employed
+as starting values for the above iteration schemes (which require a
+single starting point).  In addition, as these bounds actually give an
+interval known to contain the unique root $\hat{\kappa}$ of the
+function $\kappa \mapsto A_d(\kappa) - \rho$, one can use them as
+starting values for root finding methods which iteratively refine
+intervals containing the solution, such as simple bisection (as
+provided by \fct{uniroot} in \proglang{R}), hybrid algorithms
+combining derivative-based (Newton or Halley) and bisection steps
 \citep[e.g.][page~366]{vMF:Press+Teukolsky+Vetterling:2002}, or the
 Newton-Fourier method \citep[e.g.][pages~62--64]{vMF:Atkinson:1989}.
-One can show that $A_d$ is concave (e.g., using Theorem~11 in
-\citet{vMF:Hornik+Gruen:2013} which establishes that $A_d = R_{d/2-1}$
-is the pointwise minimum of concave functions, and hence concave):
-hence, employing the above bounds and a variant of the Newton-Fourier
-method for strictly increasing concave functions yields a quadratically
+One can show that $A_d$ is concave \citep[e.g., using Theorem~11 in][
+which establishes that $A_d = R_{d/2-1}$ is the pointwise minimum of
+concave functions, and hence concave]{vMF:Hornik+Gruen:2013}: hence,
+employing the above bounds and a variant of the Newton-Fourier method
+for strictly increasing concave functions yields a quadratically
 convergent iterative scheme for determining $\hat{\kappa}$.
 
-\subsection{Illustrative example: household expenses}\label{sec:illustr-exampl-hous-data}
+\subsection{Illustrative example: Household expenses}\label{sec:illustr-exampl-hous-data}
 
 To illustrate the use of the vMF distribution to model data on the
 sphere we use the \code{household} data set from package \pkg{HSAUR2}
@@ -471,8 +474,8 @@ data("household", package = "HSAUR2")
 x <- as.matrix(household[, c(1:2, 4)])
 gender <- household$gender
 
-theta <- rbind(female = movMF(x[gender == "female",], k = 1)$theta, 
-               male = movMF(x[gender == "male",], k = 1)$theta)
+theta <- rbind(female = movMF(x[gender == "female", ], k = 1)$theta, 
+               male = movMF(x[gender == "male", ], k = 1)$theta)
    
 set.seed(2008)
 vMFs <- lapply(1:5, function(K) 
@@ -500,8 +503,8 @@ together with the mean direction indicated by a cross and with confidence
 circles of probability 50\% (full lines) and 95\% (dashed
 lines). Clearly the females have a smaller dispersion as indicated by
 the estimated $\kappa$ which is equal to
-\Sexpr{round(kappa[1],digits=2)}, as compared to the $\kappa$ of the
-males which is given by \Sexpr{round(kappa[2],digits=2)}.
+\Sexpr{round(kappa[1],digits=1)}, as compared to the $\kappa$ of the
+males which is given by \Sexpr{round(kappa[2],digits=1)}.
 
 \begin{figure}[t!]
   \centering
@@ -551,7 +554,7 @@ The mixture model with $K$ components is given by
 where $h(\cdot | \cdot)$ is the mixture density, $\Theta$ the vector
 with all $\pi$ and $\theta$ parameters, and $f(y | \theta_k)$
 the density of the vMF distribution with parameter $\theta_k$.
-Furthermore the component weights $\pi_k$ are non-negative for all $k$
+Furthermore, the component weights $\pi_k$ are positive for all $k$
 and sum to one.
 
 \subsection{Simulating mixtures of vMF distributions}
@@ -592,10 +595,10 @@ the following steps:
   \item[E-step:] Because the complete-data log-likelihood is linear in
     the missing data which correspond to the component memberships,
     the E-step only consists of calculating the a-posteriori
-    probabilities, the probabilities of belonging to an component
+    probabilities, the probabilities of belonging to a component
     conditional on the observed values, using
     \begin{align*}
-      p_{ik} := p(k|x_i, \Theta) &\propto \pi_k f(x_i | \theta_k).
+      p(k|x_i, \Theta) &\propto \pi_k f(x_i | \theta_k).
     \end{align*}
   \item[M-step:] Maximize the expected complete-data log-likelihood by
     determining separately for each $k$:
@@ -606,7 +609,7 @@ the following steps:
       \frac{\|\sum_{i=1}^n p(k|x_i, \Theta) x_i\|}{\sum_{i=1}^n p(k|x_i, \Theta)}. 
     \end{align*}
     $\hat{\kappa}_k$ can be determined via the approximation of
-    Equation~\eqref{eq:kappa_hat_approx}, or one of the improved
+    Equation~\ref{eq:kappa_hat_approx}, or one of the improved
     methods discussed in Section~\ref{sec:estim-param-vmf}.
   \item[Convergence check:] Assess convergence by checking (either or both)
     \begin{enumerate}[(a)]
@@ -627,20 +630,24 @@ to the hard-movMF algorithm by adding a hardening step between E- and
 M-step:
 \begin{description}
 \item[H-step:] Replace the a-posteriori probabilities by assigning
-  each observation with probability 1 to the component where its
-  a-posteriori probability is maximum.
+  each observation with probability 1 to one of the components where
+  its a-posteriori probability is maximum. Assuming the maximum is
+  unique, this corresponds to
   \begin{align*}
     p(k|x_i, \Theta) &= \left\{\begin{array}{rl}
-        1,&\text{if } k = \argmax_h p_{ih}\\
-        0,&\text{otherwise}
+        1,&\text{if } k = \argmax_h p(h|x_i, \Theta),\\
+        0,&\text{otherwise}.
       \end{array}
       \right.
   \end{align*}
+  If the maximum is not unique, assignment is randomly with equal
+  probability to one of the $k \in \argmax_h p(h|x_i, \Theta)$, i.e., ties are
+  broken at random.
 \end{description}
-This algorithm is also referred to as Classification EM algorithm in
+This algorithm is also referred to as classification EM algorithm in
 the literature \citep{vMF:Celeux+Govaert:1992}. A further variant of
 the EM algorithm also considered for example in
-\cite{vMF:Celeux+Govaert:1992} would be the Stochastic EM where
+\cite{vMF:Celeux+Govaert:1992} would be the stochastic EM where
 instead of an hardening step a stochastic step is added between E- and
 M-step:
 \begin{description}
@@ -649,10 +656,10 @@ M-step:
 \end{description}
 
 The algorithm above determines the parameter estimates if the
-concentration parameters are allowed to vary freely over components. An
-alternative model specification could be to impose the restriction
-that the concentration parameters are the same for each
-component. This has the advantage that the clusters will be of
+concentration parameters are allowed to vary freely over
+components. An alternative model specification could be to impose the
+restriction that the concentration parameters are the same for all
+components. This has the advantage that the clusters will be of
 comparable compactness and that spurious solutions containing small
 components with very large concentration parameters are eliminated. In
 the following we derive how the M-step needs to be modified if the
@@ -703,7 +710,7 @@ i.e., $\kappa$ needs to solve the equation
   \frac{1}{n} \sum_k \left\|\sum_i x_i p(k|x_i,\Theta)\right\|.
 \end{displaymath}
 
-\subsection{Illustrative example: household expenses}\label{sec:illustr-exampl-hous-movMF}
+\subsection{Illustrative example: Household expenses}\label{sec:illustr-exampl-hous-movMF}
 
 In the following the gender information is not used and it is
 investigated if finite mixtures allow to unravel a distinction between
@@ -762,6 +769,7 @@ X3 <- apply(cbind(c("$K = 3$", rep("", 2)), X3), 1, paste, collapse = "&")
   \caption{Results of fitting mixtures of vMF distributions to the household expenses example.}
   \label{tab:household-expenses}
 \end{table}
+\pagebreak
 %%------------------------------------------------------------------------
 %%------------------------------------------------------------------------
 \section[Software]{Software}\label{sec:software}
@@ -782,21 +790,21 @@ The arguments for this function are as follows.
   observations. If necessary the data is standardized to unit row
   lengths. Furthermore, the matrix can be either stored as a dense
   matrix, a simple triplet matrix (defined in package \pkg{slam}), or
-  a general sparse triplet matrix of class \code{"dgtMatrix"} (from
+  a general sparse triplet matrix of class `\code{dgtMatrix}' (from
   package \pkg{Matrix}).
 \item[\normalfont \code{k}:] An integer indicating the number of components.
 \item[\normalfont \code{control}:] A list of control parameters consisting of
  \begin{description}
   \item[\code{E}:] Specifies the variant of the EM algorithm used with
    possible values \code{"softmax"} (default), \code{"hardmax"}
-   (Classification EM), and \code{"stochmax"} (Stochastic EM).
+   (classification EM), and \code{"stochmax"} (stochastic EM).
   \item[\code{kappa}:] This argument allows to specify how to determine
    the concentration parameters.
    \begin{itemize}
     \item If numbers are given, the concentration parameters are assumed
      to be fixed and are not estimated in the EM algorithm.
    \item The method for solving for the concentration parameters can
-     be specified by one of \code{"Banerjee_et_al_2005"},
+     be \mbox{specified} by one of \code{"Banerjee_et_al_2005"},
      \code{"Tanabe_et_al_2007"}, \code{"Sra_2012"},
      \code{"Song_et_al_2012"}, \code{"uniroot"}, \code{"Newton"},
      \code{"Halley"}, \code{"hybrid"} and \code{"Newton_Fourier"}
@@ -810,7 +818,7 @@ The arguments for this function are as follows.
    algorithm should be checked and if in this case the algorithm
    should be stopped before the maximum number of iterations is
    reached. For \code{E} equal to \code{"softmax"} this argument is
-   set to \code{FALSE}. Note that only condition (a) of the
+   set by default to \code{FALSE}. Note that only condition (a) of the
    convergence check (see Section~\ref{sec:estim-param-mixt}) is
    assessed, i.e., the relative change in the log-likelihood values.
   \item[\code{maxiter}:] Integer indicating the maximum number of
@@ -850,8 +858,8 @@ The arguments for this function are as follows.
     already picked prototypes.  For \code{"s"} one takes a randomly
     chosen observation as the first prototype, and then proceeds as
     for \code{"S"}. For more details on these initialization methods
-    see package \pkg{skmeans} which uses the same initialization
-    schemes.
+    see package \pkg{skmeans} \citep{vMF:Hornik+Feinerer+Kober:2012}
+    which uses the same initialization schemes.
   \item[\code{nruns}:] An integer indicating the number of repeated
     runs of the EM algorithm with random initialization. This argument
     is ignored if either \code{ids} or \code{start} are specified.
@@ -867,14 +875,14 @@ The arguments for this function are as follows.
 
 \subsection[Additional functionality in  movMF]{Additional functionality in \pkg{movMF}}
 
-The object returned by \fct{movMF} is an \proglang{S3} class called
+The object returned by \fct{movMF} has an \proglang{S}3 class called
 `\code{movMF}' with methods \fct{print}, \fct{coef}, \fct{logLik} and
-\fct{predict} (obtains either the component assignments or the matrix
+\fct{predict} (yields either the component assignments or the matrix
 of a-posteriori probabilities). Additional functionality available in
 the package includes \fct{rmovMF} for drawing from a mixture of vMF
 distributions and \fct{dmovMF} for evaluating the mixture density.
 
-\subsection{Illustrative example: household expenses}\label{sec:illustr-exampl-hous-code}
+\subsection{Illustrative example: Household expenses}\label{sec:illustr-exampl-hous-code}
 
 In the following the code for reproducing the results presented in
 Section~\ref{sec:illustr-exampl-hous-movMF} is provided.  After
@@ -891,7 +899,7 @@ initializations is returned.
 <<illustration1>>
 @ 
 %
-The BIC values for the different mixtures can be obtained compared
+The BIC values for the different mixtures can be compared
 using
 <<>>=
 sapply(vMFs, BIC)
@@ -1352,7 +1360,7 @@ $\nu \to \infty$, $I_\nu(\kappa)$ underflows quite rapidly.  For
 computing logarithms, overflow can be avoided by employing the
 exponentially scaled modified Bessel function $e^{-\kappa}
 I_\nu(\kappa)$ \citep[as commonly available in codes for computing
-Bessel fuctions, such as the \pkg{SPECFUN} package][used by
+Bessel functions, such as the \pkg{SPECFUN} package][used by
 \proglang{R}]{vMF:Cody:1993} and computing $\log(I_\nu(\kappa)) =
 \kappa + \log(e^{-\kappa} I_\nu(\kappa))$.  However, this clearly does
 not help avoiding underflow.
@@ -1404,17 +1412,17 @@ Using the \pkg{tm} package \citep{vMF:Feinerer+Hornik+Meyer:2008,
 corpus from the vector of abstracts and (2) building a document-term
 matrix from the corpus. For constructing the document-term matrix each
 abstract needs to be tokenized (i.e., split into words, e.g., by using
-whitespace characters as separators) and transformed to lower case.
+white space characters as separators) and transformed to lower case.
 Punctuation as well as numbers can be removed and the words can be
 stemmed (i.e., inflected words are reduced to a base form). In
 addition a minimum length can be imposed on the words as well as a
-minimum and maximum frequency inside an abstract required.
+minimum and maximum frequency within an abstract required.
 
 The vector of abstracts is transformed to an object which has an
 extended class of `\code{Source}' using \fct{VectorSource}. This
 object is used as input for \fct{Corpus} to generate the corpus. The
 map from the corpus to the document-term matrix is performed using
-\fct{DocumentTermMatrix}. The control argument of
+\fct{DocumentTermMatrix}. The \code{control} argument of
 \fct{DocumentTermMatrix} specifies which pre-processing steps are
 applied to determine the frequency vectors of term occurrences in each
 abstract. We use the titles and the abstracts together to
@@ -1439,7 +1447,7 @@ Method \code{"MC"} was used for tokenizing. This method aims at
 producing the same results as the \pkg{MC} toolkit for creating vector
 models from text documents \citep{vMF:Dhillon+Modha:2001,
   vMF:Dhillon+Fan+Guan:2001}. In addition the words are stemmed, a set
-of stopwords are removed and all words are kept which have a length of
+of stop words are removed and all words are kept which have a length of
 at least 3.
 
 The resulting document-term matrix has
@@ -1471,7 +1479,7 @@ useR_2008_abstracts_DTM <- weightTfIdf(useR_2008_abstracts_DTM)
 @ 
 %
 In the following different mixtures of vMF distributions are fitted to
-the training data when using 10-fold cross-validation and are compared
+training data using 10-fold cross-validation and are compared
 based on the predictive log-likelihoods on the hold-out data to select
 a suitable model. The numbers of components are varied and the
 mixtures are fitted with concentration parameters constrained to be
@@ -1522,7 +1530,7 @@ In Figure~\ref{fig:logliks} the fitted models are compared using the
 cross-validated predictive log-likelihoods. The results for the models
 with free concentration parameters are on the left, for the models with
 common concentration parameters on the right. The predictive
-log-likelihoods on the hold-out data indicates that the best solutions
+log-likelihoods on the hold-out data indicate that the best solutions
 have between 1 and 5 components and that the models with more
 components have rather bad predictive log-likelihoods.
 
@@ -1575,11 +1583,11 @@ The clustering obtained from the a-posteriori probabilities is
 analyzed by comparing the cluster membership with the keywords
 assigned to an abstract. Because each abstract might have several
 keywords assigned, the abstracts and their cluster assignments are
-accordingly repeated.
+suitably repeated.
 %
 <<>>=
 clustering <- predict(best_model)
-keywords <- useR_2008_abstracts[,"Keywords"]
+keywords <- useR_2008_abstracts[, "Keywords"]
 keywords <- sapply(keywords, 
                    function(x) sapply(strsplit(x, ", ")[[1]], function(y) 
                                       strsplit(y, "-")[[1]][1]))
@@ -1622,7 +1630,7 @@ mosaic(tab, shade = TRUE,
 An \proglang{R} package for fitting finite mixtures of vMF
 distributions is presented. Special focus has been given on numerical
 issues when evaluating the log-likelihood as well as on methods for
-maximum likelihood estimation of the concentration parameter.
+ML estimation of the concentration parameter.
 
 A possible extension for package \pkg{movMF} would be to allow for
 more flexible distributions in the components which also have as
@@ -1649,7 +1657,7 @@ This research was supported by the Austrian Science Fund (FWF)
 under Elise-Richter grant V170-N18.
 
 We would like to thank Achim Zeileis and Uwe Ligges for helping
-generating the corpus of abstracts for the ``use\proglang{R}! 2008''.
+generating the corpus of ``use\proglang{R}! 2008'' abstracts.
 %%------------------------------------------------------------------------
 %%------------------------------------------------------------------------
 \bibliography{vMF}

@@ -101,8 +101,8 @@ data("household", package = "HSAUR2")
 x <- as.matrix(household[, c(1:2, 4)])
 gender <- household$gender
 
-theta <- rbind(female = movMF(x[gender == "female",], k = 1)$theta, 
-               male = movMF(x[gender == "male",], k = 1)$theta)
+theta <- rbind(female = movMF(x[gender == "female", ], k = 1)$theta, 
+               male = movMF(x[gender == "male", ], k = 1)$theta)
    
 set.seed(2008)
 vMFs <- lapply(1:5, function(K) 
@@ -110,7 +110,7 @@ vMFs <- lapply(1:5, function(K)
 
 
 ###################################################
-### code chunk number 5: movMF.Rnw:482-486
+### code chunk number 5: movMF.Rnw:485-489
 ###################################################
 kappa <- row_norms(theta)
 tab2 <- table(max.col(vMFs[[2]]$P), household$gender)
@@ -119,7 +119,7 @@ tab3 <- table(max.col(vMFs[[3]]$P), household$gender)
 
 
 ###################################################
-### code chunk number 6: movMF.Rnw:508-531
+### code chunk number 6: movMF.Rnw:511-534
 ###################################################
 par(mar = 0.1 + c(0, 0.5, 2, 0), mfrow = c(2, 2))
 plotGlobe(x, household$gender, main = "Data", 
@@ -147,7 +147,7 @@ for (k in 2:3) {
 
 
 ###################################################
-### code chunk number 7: movMF.Rnw:734-745
+### code chunk number 7: movMF.Rnw:741-752
 ###################################################
 X2 <- cbind(alpha[[2]], mu[[2]], kappa[[2]], c(BIC(vMFs[[2]]), NA))
 X2 <- format(round(X2, digits = 2), nsmall = 2)
@@ -163,20 +163,20 @@ X3 <- apply(cbind(c("$K = 3$", rep("", 2)), X3), 1, paste, collapse = "&")
 
 
 ###################################################
-### code chunk number 8: movMF.Rnw:775-776
+### code chunk number 8: movMF.Rnw:783-784
 ###################################################
 cat(paste("R> ", prompt(movMF, filename = NA)$usage[[2]]))
 
 
 ###################################################
-### code chunk number 9: movMF.Rnw:890-891 (eval = FALSE)
+### code chunk number 9: movMF.Rnw:898-899 (eval = FALSE)
 ###################################################
 ## data("household", package = "HSAUR2")
 ## x <- as.matrix(household[, c(1:2, 4)])
 ## gender <- household$gender
 ## 
-## theta <- rbind(female = movMF(x[gender == "female",], k = 1)$theta, 
-##                male = movMF(x[gender == "male",], k = 1)$theta)
+## theta <- rbind(female = movMF(x[gender == "female", ], k = 1)$theta, 
+##                male = movMF(x[gender == "male", ], k = 1)$theta)
 ##    
 ## set.seed(2008)
 ## vMFs <- lapply(1:5, function(K) 
@@ -184,13 +184,13 @@ cat(paste("R> ", prompt(movMF, filename = NA)$usage[[2]]))
 
 
 ###################################################
-### code chunk number 10: movMF.Rnw:896-897
+### code chunk number 10: movMF.Rnw:904-905
 ###################################################
 sapply(vMFs, BIC)
 
 
 ###################################################
-### code chunk number 11: movMF.Rnw:1398-1399 (eval = FALSE)
+### code chunk number 11: movMF.Rnw:1406-1407 (eval = FALSE)
 ###################################################
 ## if (!require("corpus.useR.2008.abstracts", quietly = TRUE)) {
 ##   install.packages("corpus.useR.2008.abstracts", 
@@ -200,7 +200,7 @@ sapply(vMFs, BIC)
 
 
 ###################################################
-### code chunk number 12: movMF.Rnw:1423-1435
+### code chunk number 12: movMF.Rnw:1431-1443
 ###################################################
 library("tm")
 abstracts_titles <- 
@@ -217,7 +217,7 @@ useR_2008_abstracts_DTM <-
 
 
 ###################################################
-### code chunk number 13: movMF.Rnw:1450-1453
+### code chunk number 13: movMF.Rnw:1458-1461
 ###################################################
 library("slam")
 ColSums <- col_sums(useR_2008_abstracts_DTM > 0)
@@ -225,7 +225,7 @@ sort(ColSums, decreasing = TRUE)[1:10]
 
 
 ###################################################
-### code chunk number 14: movMF.Rnw:1461-1464
+### code chunk number 14: movMF.Rnw:1469-1472
 ###################################################
 useR_2008_abstracts_DTM <- 
   useR_2008_abstracts_DTM[, ColSums >= 5 & ColSums <= 90]
@@ -233,7 +233,7 @@ useR_2008_abstracts_DTM
 
 
 ###################################################
-### code chunk number 15: movMF.Rnw:1469-1470
+### code chunk number 15: movMF.Rnw:1477-1478
 ###################################################
 useR_2008_abstracts_DTM <- weightTfIdf(useR_2008_abstracts_DTM)
 
@@ -263,7 +263,7 @@ useR_2008_abstracts_DTM <- weightTfIdf(useR_2008_abstracts_DTM)
 
 
 ###################################################
-### code chunk number 17: movMF.Rnw:1505-1518
+### code chunk number 17: movMF.Rnw:1513-1526
 ###################################################
 if(cache & file.exists("movMF.rda")) {
   load("movMF.rda")
@@ -299,7 +299,7 @@ if(cache) {
 
 
 ###################################################
-### code chunk number 18: movMF.Rnw:1531-1543
+### code chunk number 18: movMF.Rnw:1539-1551
 ###################################################
 logLiks <- data.frame(logLik = c(unlist(useR_2008_movMF),
                         unlist(useR_2008_movMF_common)),
@@ -316,7 +316,7 @@ print(xyplot(logLik ~ K | Method, data = logLiks, groups = Dataset, type = "l", 
 
 
 ###################################################
-### code chunk number 19: movMF.Rnw:1556-1559
+### code chunk number 19: movMF.Rnw:1564-1567
 ###################################################
 set.seed(2008)
 best_model <- movMF(useR_2008_abstracts_DTM, k = 2, nruns = 20,
@@ -324,17 +324,17 @@ best_model <- movMF(useR_2008_abstracts_DTM, k = 2, nruns = 20,
 
 
 ###################################################
-### code chunk number 20: movMF.Rnw:1565-1567
+### code chunk number 20: movMF.Rnw:1573-1575
 ###################################################
 apply(coef(best_model)$theta, 1, function(x) 
       colnames(coef(best_model)$theta)[order(x, decreasing = TRUE)[1:10]])
 
 
 ###################################################
-### code chunk number 21: movMF.Rnw:1580-1587
+### code chunk number 21: movMF.Rnw:1588-1595
 ###################################################
 clustering <- predict(best_model)
-keywords <- useR_2008_abstracts[,"Keywords"]
+keywords <- useR_2008_abstracts[, "Keywords"]
 keywords <- sapply(keywords, 
                    function(x) sapply(strsplit(x, ", ")[[1]], function(y) 
                                       strsplit(y, "-")[[1]][1]))
@@ -343,13 +343,13 @@ tab <- table(Keyword = unlist(keywords),
 
 
 ###################################################
-### code chunk number 22: movMF.Rnw:1593-1594
+### code chunk number 22: movMF.Rnw:1601-1602
 ###################################################
 (tab <- tab[rowSums(tab) > 8, ])
 
 
 ###################################################
-### code chunk number 23: movMF.Rnw:1607-1611
+### code chunk number 23: movMF.Rnw:1615-1619
 ###################################################
 library("vcd")
 mosaic(tab, shade = TRUE, 

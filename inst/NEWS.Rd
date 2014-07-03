@@ -1,6 +1,26 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
+\section{Changes in version 0.2-0}{
+  \itemize{
+    \item The package vignette has been published in the Journal of
+    Statistical Software, Volume 58, Issue 10
+    (\url{http://www.jstatsoft.org/v58/i10}), and the paper should be
+    used as citation for the package, run \code{citation("movMF")} for
+    details.
+    \item In the calculation of 0F1 it is now ensured that summation is
+    continued as long as the terms are increasing and only then
+    numerical convergence is checked as stopping criterion.
+    \item For simulating from the vMF distribution the necesssary
+    quantities in the rejection sampling are now calculated in a
+    numerically more stable way. Thanks to Mike Allerhand for pointing
+    out that problems did arise for large values of the precision
+    parameter for the previous implementation.
+    \item Package \pkg{corpus.useR.2008.abstracts} is now listed in the
+    DESCRIPTION file together with the information that is available from
+    the additional repository \url{http://datacube.wu.ac.at}.
+  }
+}
 \section{Changes in version 0.1-3}{
   \itemize{
     \item An improved approximation is used to calculate the normalizing

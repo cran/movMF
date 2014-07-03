@@ -782,6 +782,27 @@ function(Rbar, d, tol = 1e-6, maxiter = 100, step = step_Halley)
 ##
 ## as approximation for \log(H_\nu).
 
+G <-
+function(kappa, alpha, beta)
+{
+    n <- max(length(kappa), length(alpha), length(beta))
+    kappa <- rep_len(kappa, n)
+    alpha <- rep_len(alpha, n)
+    beta <- rep_len(beta, n)
+
+    y <- numeric(n)
+
+    ind <- ((alpha == 0) & (beta == 0))
+    if(any(ind)) y[ind] <- 1
+    ind <- !ind
+    if(any(ind)) {
+        denom <- alpha[ind] + sqrt(kappa[ind]^2 + beta[ind]^2)
+        y[ind] <- ifelse(denom == 0, NaN, kappa[ind] / denom)
+    }
+
+    y
+}
+
 beta_SS <-
 function(nu)
     sqrt((nu + 1/2) * (nu + 3/2))
@@ -814,8 +835,22 @@ function(rho, nu)
 S <-
 function(kappa, alpha, beta)
 {
-    u <- sqrt(kappa^2 + beta^2)
-    u - beta - alpha * log((alpha + u) / (alpha + beta))
+    n <- max(length(kappa), length(alpha), length(beta))
+    kappa <- rep_len(abs(kappa), n)
+    alpha <- rep_len(alpha, n)
+    beta <- rep_len(abs(beta), n)
+
+    ab <- alpha + beta
+    s <- double(n)
+    ind <- (ab < 0) & (kappa^2 > alpha^2 - beta^2)
+    if (any(ind))
+        s[ind] <- NaN
+    ind <- !ind
+    if (any(ind)) {
+        u <- sqrt(kappa[ind]^2 + beta[ind]^2)
+        s[ind] <- u - beta[ind] - ifelse(alpha[ind] == 0, 0, alpha[ind] * log((alpha[ind] + u) / ab[ind]))
+    }
+    s
 }
 
 ## Utility functions for computing H and log(H).
@@ -1048,6 +1083,41 @@ function(t, nu, ..., R = NULL)
 Rdoubleprime <-
 function(t, nu, ..., R = NULL)
     Adoubleprime(t, 2 * (nu + 1), ..., A = R)
+
+Rtripleprime <-
+function(t, nu, ..., tol = 1e-6)
+{
+    n <- max(length(t), length(nu))
+    t <- rep_len(t, n)
+    nu <- rep_len(nu, n)
+    rnu_tripleprime <- vector("numeric", length = n)
+    ind <- t >= tol
+    if(sum(ind)) {
+        t_ind <- t[ind]
+        nu_ind <- nu[ind]
+        rnu <- R(t_ind, nu_ind, ..., tol = tol)
+        ## No given R for now.
+        rnu_prime <- Rprime(t_ind, nu_ind, tol = tol, R = rnu)
+        rnu_doubleprime <- Rdoubleprime(t_ind, nu_ind, tol = tol, R = rnu)
+        delta <- 2 * nu_ind + 1
+        rnu_tripleprime[ind] <-
+            (- 2 * delta * rnu / t_ind^3
+             + 2 * delta * rnu_prime / t_ind^2
+             -     delta * rnu_doubleprime / t_ind
+             - 2 * (rnu_prime^2 + rnu * rnu_doubleprime))
+    }
+    ind <- !ind
+    if(sum(ind)) {
+        t_ind <- t[ind]
+        nu_ind <- nu[ind]
+        rnu_tripleprime[ind] <-
+            (- 0.75 / ((nu_ind + 1)^2 * (nu_ind + 2))
+             + 3.75 * t_ind^2 /
+             ( (nu_ind + 1)^3 * (nu_ind + 2) * (nu_ind + 3) ))
+    }
+
+    rnu_tripleprime
+}
 
 ## Log-likelihood
 
