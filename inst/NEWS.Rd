@@ -1,6 +1,14 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
+
+\section{Changes in version 0.2-1}{
+  \itemize{
+    \item The information on publication of the vignette in JSS is now
+    also mentioned in the vignette.
+  }
+}
+
 \section{Changes in version 0.2-0}{
   \itemize{
     \item The package vignette has been published in the Journal of
@@ -21,6 +29,7 @@
     the additional repository \url{http://datacube.wu.ac.at}.
   }
 }
+
 \section{Changes in version 0.1-3}{
   \itemize{
     \item An improved approximation is used to calculate the normalizing
@@ -28,6 +37,7 @@
     information.
   }
 }
+
 \section{Changes in version 0.1-2}{
   \itemize{
     \item For determining the concentration parameters the following
@@ -36,12 +46,14 @@
     \code{"Newton_Fourier"}. 
   }
 }
+
 \section{Changes in version 0.1-1}{
   \itemize{
     \item Package \pkg{SnowballC} is now suggested instead of
     \pkg{Snowball}.
   }
 }
+
 \section{Changes in version 0.1-0}{
   \itemize{
     \item Package now uses registration for native (C) routines.
@@ -55,6 +67,7 @@
     kappa. 
   }
 }
+
 \section{Changes in version 0.0-2}{
   \itemize{
     \item Function \code{A()} modified to have now three methods
@@ -63,6 +76,7 @@
     hypergeometric series).  By default, method \code{"PCF"} is used.
   }
 }
+
 \section{Changes in version 0.0-1}{
   \itemize{
     \item The random initializations for multiple runs are now

@@ -1,20 +1,14 @@
 citHeader("To cite movMF in publications use:")
 
-citEntry(entry = "Article",
-  title        = "{movMF}: An {R} Package for Fitting Mixtures of von Mises-Fisher Distributions",
-  author       = personList(as.person("Kurt Hornik"),
-                   as.person("Bettina Gr\\\"un")),
-  journal      = "Journal of Statistical Software",
-  year         = "2014",
-  volume       = "58",
-  number       = "10",
-  pages        = "1--31",
-  url          = "http://www.jstatsoft.org/v58/i10/",
-
-  textVersion  =
-  paste("Kurt Hornik, Bettina Gruen (2014).",
-        "movMF: An R Package for Fitting Mixtures of von Mises-Fisher Distributions.",
-        "Journal of Statistical Software, 58(10), 1-31.",
-        "URL http://www.jstatsoft.org/v58/i10/.")
-)
-
+bibentry("Article",
+         title = "{movMF}: An {R} Package for Fitting Mixtures of von Mises-Fisher Distributions",
+         author =
+             c(person("Kurt", "Hornik"),
+               person("Bettina", "Gr\\\"un")),
+         journal = "Journal of Statistical Software",
+         year = "2014",
+         volume = "58",
+         number = "10",
+         pages = "1--31",
+         doi = "10.18637/jss.v058.i10"
+         )

@@ -35,6 +35,10 @@
 
 \Abstract{
 
+  This article is a (slightly) modified and shortened version of
+  \cite{vMF:Hornik+Gruen:2014b}, published in the \emph{Journal of
+    Statistical Software}.
+  
   Finite mixtures of von Mises-Fisher distributions allow to apply
   model-based clustering methods to data which is of standardized
   length, i.e., all data points lie on the unit sphere.  The
