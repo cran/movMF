@@ -1,0 +1,74 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: movMF 0.2-1.1\n"
+"POT-Creation-Date: 2017-08-12 22:22\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+
+msgid "Invalid E-step method."
+msgstr ""
+
+msgid "only the first element of 'kappa' is used for a common given kappa"
+msgstr ""
+
+msgid "only the first element of 'nu' is used for common kappa"
+msgstr ""
+
+msgid "Invalid kappa solver."
+msgstr ""
+
+msgid "length of 'ids' needs to match the number of observations"
+msgstr ""
+
+msgid "control argument 'nruns' ignored because ids are specified"
+msgstr ""
+
+msgid "control argument 'start' ignored because ids are specified"
+msgstr ""
+
+msgid "control argument 'nruns' ignored because 'start' is specified"
+msgstr ""
+
+msgid "Run: %d"
+msgstr ""
+
+msgid "nu is changed to have length"
+msgstr ""
+
+msgid "*** Removing one component ***"
+msgstr ""
+
+msgid "Cannot handle empty components"
+msgstr ""
+
+msgid "Iteration: %d *** L: %g"
+msgstr ""
+
+msgid "EM algorithm did not converge:\n%s"
+msgstr ""
+
+msgid "EM algorithm did not converge for any run"
+msgstr ""
+
+msgid "Invalid control option 'start'"
+msgstr ""
+
+msgid "Cannot handle infinite concentration parameters"
+msgstr ""
+
+msgid "no convergence"
+msgstr ""
+
+msgid "RH evaluation gave infeasible values which are not in the range [0, 1)"
+msgstr ""
+
+msgid "due to initialization number of components reduced to  %d"
+msgstr ""
+
+msgid "number of components k smaller than those provided for initialization"
+msgstr ""

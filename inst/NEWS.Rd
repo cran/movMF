@@ -2,6 +2,12 @@
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
 
+\section{Changes in version 0.2-2}{
+  \itemize{
+    \item Minor vignette improvements.
+  }
+}
+
 \section{Changes in version 0.2-1}{
   \itemize{
     \item The information on publication of the vignette in JSS is now

@@ -88,11 +88,16 @@ plotGlobe <- function(x, class, pars = NULL, main = "", theta = 0, phi = 0,
 ###################################################
 ### code chunk number 3: corpus-package
 ###################################################
-if (!require("corpus.useR.2008.abstracts", quietly = TRUE)) {
-  install.packages("corpus.useR.2008.abstracts", 
-                   repos = "http://datacube.wu.ac.at/", type = "source")
+if(!nzchar(system.file(package = "corpus.useR.2008.abstracts"))) {
+    templib <- tempfile(); dir.create(templib)
+    install.packages("corpus.useR.2008.abstracts", lib = templib,
+                     repos = "https://datacube.wu.ac.at/",
+                     type = "source")
+    data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts",
+         lib.loc = templib)
+} else {
+    data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts")
 }
-data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts")
 
 
 ###################################################
@@ -111,7 +116,7 @@ vMFs <- lapply(1:5, function(K)
 
 
 ###################################################
-### code chunk number 5: movMF.Rnw:489-493
+### code chunk number 5: movMF.Rnw:494-498
 ###################################################
 kappa <- row_norms(theta)
 tab2 <- table(max.col(vMFs[[2]]$P), household$gender)
@@ -120,7 +125,7 @@ tab3 <- table(max.col(vMFs[[3]]$P), household$gender)
 
 
 ###################################################
-### code chunk number 6: movMF.Rnw:515-538
+### code chunk number 6: movMF.Rnw:520-543
 ###################################################
 par(mar = 0.1 + c(0, 0.5, 2, 0), mfrow = c(2, 2))
 plotGlobe(x, household$gender, main = "Data", 
@@ -148,7 +153,7 @@ for (k in 2:3) {
 
 
 ###################################################
-### code chunk number 7: movMF.Rnw:745-756
+### code chunk number 7: movMF.Rnw:750-761
 ###################################################
 X2 <- cbind(alpha[[2]], mu[[2]], kappa[[2]], c(BIC(vMFs[[2]]), NA))
 X2 <- format(round(X2, digits = 2), nsmall = 2)
@@ -164,13 +169,13 @@ X3 <- apply(cbind(c("$K = 3$", rep("", 2)), X3), 1, paste, collapse = "&")
 
 
 ###################################################
-### code chunk number 8: movMF.Rnw:787-788
+### code chunk number 8: movMF.Rnw:792-793
 ###################################################
 cat(paste("R> ", prompt(movMF, filename = NA)$usage[[2]]))
 
 
 ###################################################
-### code chunk number 9: movMF.Rnw:902-903 (eval = FALSE)
+### code chunk number 9: movMF.Rnw:907-908 (eval = FALSE)
 ###################################################
 ## data("household", package = "HSAUR2")
 ## x <- as.matrix(household[, c(1:2, 4)])
@@ -185,23 +190,28 @@ cat(paste("R> ", prompt(movMF, filename = NA)$usage[[2]]))
 
 
 ###################################################
-### code chunk number 10: movMF.Rnw:908-909
+### code chunk number 10: movMF.Rnw:913-914
 ###################################################
 sapply(vMFs, BIC)
 
 
 ###################################################
-### code chunk number 11: movMF.Rnw:1410-1411 (eval = FALSE)
+### code chunk number 11: movMF.Rnw:1415-1416 (eval = FALSE)
 ###################################################
-## if (!require("corpus.useR.2008.abstracts", quietly = TRUE)) {
-##   install.packages("corpus.useR.2008.abstracts", 
-##                    repos = "http://datacube.wu.ac.at/", type = "source")
+## if(!nzchar(system.file(package = "corpus.useR.2008.abstracts"))) {
+##     templib <- tempfile(); dir.create(templib)
+##     install.packages("corpus.useR.2008.abstracts", lib = templib,
+##                      repos = "https://datacube.wu.ac.at/",
+##                      type = "source")
+##     data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts",
+##          lib.loc = templib)
+## } else {
+##     data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts")
 ## }
-## data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts")
 
 
 ###################################################
-### code chunk number 12: movMF.Rnw:1435-1447
+### code chunk number 12: movMF.Rnw:1440-1452
 ###################################################
 library("tm")
 abstracts_titles <- 
@@ -218,7 +228,7 @@ useR_2008_abstracts_DTM <-
 
 
 ###################################################
-### code chunk number 13: movMF.Rnw:1462-1465
+### code chunk number 13: movMF.Rnw:1467-1470
 ###################################################
 library("slam")
 ColSums <- col_sums(useR_2008_abstracts_DTM > 0)
@@ -226,7 +236,7 @@ sort(ColSums, decreasing = TRUE)[1:10]
 
 
 ###################################################
-### code chunk number 14: movMF.Rnw:1473-1476
+### code chunk number 14: movMF.Rnw:1478-1481
 ###################################################
 useR_2008_abstracts_DTM <- 
   useR_2008_abstracts_DTM[, ColSums >= 5 & ColSums <= 90]
@@ -234,7 +244,7 @@ useR_2008_abstracts_DTM
 
 
 ###################################################
-### code chunk number 15: movMF.Rnw:1481-1482
+### code chunk number 15: movMF.Rnw:1486-1487
 ###################################################
 useR_2008_abstracts_DTM <- weightTfIdf(useR_2008_abstracts_DTM)
 
@@ -264,7 +274,7 @@ useR_2008_abstracts_DTM <- weightTfIdf(useR_2008_abstracts_DTM)
 
 
 ###################################################
-### code chunk number 17: movMF.Rnw:1517-1530
+### code chunk number 17: movMF.Rnw:1522-1535
 ###################################################
 if(cache & file.exists("movMF.rda")) {
   load("movMF.rda")
@@ -300,7 +310,7 @@ if(cache) {
 
 
 ###################################################
-### code chunk number 18: movMF.Rnw:1543-1555
+### code chunk number 18: movMF.Rnw:1548-1560
 ###################################################
 logLiks <- data.frame(logLik = c(unlist(useR_2008_movMF),
                         unlist(useR_2008_movMF_common)),
@@ -317,7 +327,7 @@ print(xyplot(logLik ~ K | Method, data = logLiks, groups = Dataset, type = "l", 
 
 
 ###################################################
-### code chunk number 19: movMF.Rnw:1568-1571
+### code chunk number 19: movMF.Rnw:1573-1576
 ###################################################
 set.seed(2008)
 best_model <- movMF(useR_2008_abstracts_DTM, k = 2, nruns = 20,
@@ -325,14 +335,14 @@ best_model <- movMF(useR_2008_abstracts_DTM, k = 2, nruns = 20,
 
 
 ###################################################
-### code chunk number 20: movMF.Rnw:1577-1579
+### code chunk number 20: movMF.Rnw:1582-1584
 ###################################################
 apply(coef(best_model)$theta, 1, function(x) 
       colnames(coef(best_model)$theta)[order(x, decreasing = TRUE)[1:10]])
 
 
 ###################################################
-### code chunk number 21: movMF.Rnw:1592-1599
+### code chunk number 21: movMF.Rnw:1597-1604
 ###################################################
 clustering <- predict(best_model)
 keywords <- useR_2008_abstracts[, "Keywords"]
@@ -344,13 +354,13 @@ tab <- table(Keyword = unlist(keywords),
 
 
 ###################################################
-### code chunk number 22: movMF.Rnw:1605-1606
+### code chunk number 22: movMF.Rnw:1610-1611
 ###################################################
 (tab <- tab[rowSums(tab) > 8, ])
 
 
 ###################################################
-### code chunk number 23: movMF.Rnw:1619-1623
+### code chunk number 23: movMF.Rnw:1624-1628
 ###################################################
 library("vcd")
 mosaic(tab, shade = TRUE, 

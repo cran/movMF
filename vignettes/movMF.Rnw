@@ -158,11 +158,16 @@ plotGlobe <- function(x, class, pars = NULL, main = "", theta = 0, phi = 0,
 @ 
 
 <<corpus-package, echo=false, results=hide>>=
-if (!require("corpus.useR.2008.abstracts", quietly = TRUE)) {
-  install.packages("corpus.useR.2008.abstracts", 
-                   repos = "http://datacube.wu.ac.at/", type = "source")
+if(!nzchar(system.file(package = "corpus.useR.2008.abstracts"))) {
+    templib <- tempfile(); dir.create(templib)
+    install.packages("corpus.useR.2008.abstracts", lib = templib,
+                     repos = "https://datacube.wu.ac.at/",
+                     type = "source")
+    data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts",
+         lib.loc = templib)
+} else {
+    data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts")
 }
-data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts")
 @ 
 
 \begin{document}
@@ -1402,7 +1407,7 @@ accepted for presentation at the conference. The abstracts with
 additional information such as title, author, session, and keywords
 are available in the \proglang{R} data package
 \pkg{corpus.useR.2008.abstracts} available from the repository at
-\url{http://datacube.wu.ac.at/}.
+\url{https://datacube.wu.ac.at/}.
 
 The following code checks if the package is installed and if necessary
 installs it. Furthermore, the data contained in the package is loaded.
