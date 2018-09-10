@@ -2,6 +2,12 @@
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
 
+\section{Changes in version 0.2-3}{
+  \itemize{
+    \item A bug in function \code{solve_kappa_uniroot} is now corrected.
+  }
+}
+
 \section{Changes in version 0.2-2}{
   \itemize{
     \item Minor vignette improvements.

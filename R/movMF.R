@@ -556,13 +556,14 @@ function(Rbar, d, tol = 1e-6)
     sapply(seq_along(Rbar),
            function(i) {
              r <- Rbar[i]
-             nu <- d[i] / 2 - 1
+             D <- d[i]
+             nu <- D / 2 - 1
              interval <- c(Rinv_lower_Amos_bound(r, nu),
                            Rinv_upper_Amos_bound(r, nu))
              if (abs(diff(interval)) < tol)
                mean(interval)
              else 
-               uniroot(function(kappa) A(kappa, d) - r,
+               uniroot(function(kappa) A(kappa, D) - r,
                        interval = interval,
                        tol = tol)$root})
 }

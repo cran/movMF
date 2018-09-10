@@ -15,6 +15,6 @@ static const R_CMethodDef cMethods[] = {
 
 void R_init_movMF(DllInfo *dll)
 {
-    R_useDynamicSymbols(dll, FALSE);
     R_registerRoutines(dll, cMethods, NULL, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

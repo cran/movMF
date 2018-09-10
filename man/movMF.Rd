@@ -80,11 +80,11 @@ movMF(x, k, control = list(), ...)
       Banerjee et al (2005).}
     \item{\code{"uniroot"}}{uses a straightforward call to
       \code{\link{uniroot}} with the bounds established in Hornik and
-	\enc{Grün}{Gruen} (2012).}
+	\enc{Grün}{Gruen} (2014).}
     \item{\code{"Newton"}}{uses a full Newton algorithm started in the
-      approximation of Hornik and \enc{Grün}{Gruen} (2012).}
+      approximation of Hornik and \enc{Grün}{Gruen} (2014).}
     \item{\code{"Halley"}}{uses a full Halley algorithm started in the
-      approximation of Hornik and \enc{Grün}{Gruen} (2012).}
+      approximation of Hornik and \enc{Grün}{Gruen} (2014).}
     \item{\code{"hybrid"}}{implements a combination of a
       derivative-based step (Newton or Halley) and a bisection step as
       outlined in Press et al. (2002). The derivative-based step can be
@@ -194,19 +194,19 @@ movMF(x, k, control = list(), ...)
   A classification EM algorithm for clustering and two stochastic
   versions.
   \emph{Computational Statistics & Data Analysis}, \bold{14}, 315--332.
-  doi: 10.1016/0167-9473(92)90042-E.
+  \doi{10.1016/0167-9473(92)90042-E}.
 
-  K. Hornik K, and B. \enc{Grün}{Gruen} (2012).
-  On maximum likelihood estimation of the concentration
-  parameter of von Mises-Fisher distributions.
-  \emph{Report 120}, Institute for Statistics and Mathematics, WU
-  \enc{Wirtschaftsuniversität}{Wirtschaftsuniversitaet} Wien, Research
-  Report Series. \url{http://epub.wu.ac.at/3669/}
-  
   K. Hornik, and B. \enc{Grün}{Gruen} (2013).
   Amos-type bounds for modified Bessel function ratios.
   \emph{Journal of Mathematical Analysis and Applications},
-  \bold{408}(1), 91--101.  doi:10.1016/j.jmaa.2013.05.070.
+  \bold{408}(1), 91--101.
+  \doi{10.1016/j.jmaa.2013.05.070}.
+
+  K. Hornik, and B. \enc{Grün}{Gruen} (2014).
+  On maximum likelihood estimation of the concentration
+  parameter of von Mises-Fisher distributions.
+  \emph{Computational Statistics}, \bold{29}, 945--957.
+  \doi{10.1007/s00180-013-0471-0}.
   
   W. H. Press, S. A. Teukolsky, W. T. Vetterling and Brian P. Flannery
   (2002).
@@ -216,18 +216,18 @@ movMF(x, k, control = list(), ...)
   H. Song, J. Liu, and G. Wang.
   High-order parameter approximation for von Mises-Fisher distributions.
   \emph{Applied Mathematics and Computation}, \bold{218}, 11880--11890.
-  doi: 10.1016/j.amc.2012.05.050.
+  \doi{10.1016/j.amc.2012.05.050}.
    
   S. Sra (2012).
   A short note on parameter approximation for von Mises-Fisher
   distributions: and a fast implementation of \eqn{I_s(x)}.
   \emph{Computational Statistics}, \bold{27}, 177--190.
-  doi: 10.1007/s00180-011-0232-x.
+  \doi{10.1007/s00180-011-0232-x}.
 
   A. Tanabe, K. Fukumizu, S. Oba, T. Takenouchi, and S. Ishii.
   Parameter estimation for von Mises-Fisher distributions.
   \emph{Computational Statistics}, \bold{22}, 145--157.
-  doi: 10.1007/s00180-007-0030-7.
+  \doi{10.1007/s00180-007-0030-7}.
 }
 \examples{
 ## Generate and fit a "small-mix" data set a la Banerjee et al.
@@ -243,6 +243,7 @@ set.seed(123)
 x <- rmovMF(50, theta, alpha)
 ## Fit a von Mises-Fisher mixture with the "right" number of components,
 ## using 10 EM runs.
+set.seed(123)
 y2 <- movMF(x, 2, nruns = 10)
 ## Inspect the fitted parameters:
 y2
@@ -254,4 +255,8 @@ y2cv <- movMF(x, 2, nruns = 10, kappa = list(common = TRUE))
 y2cf <- movMF(x, 2, nruns = 10, kappa = 4)
 ## Comparing solutions via BIC:
 sapply(list(y2, y2cf, y2cv), BIC)
+##  Use a different kappa solver:
+set.seed(123)
+y2a <- movMF(x, 2, nruns = 10, kappa = "uniroot")
+y2a
 }
