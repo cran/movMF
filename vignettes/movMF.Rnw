@@ -558,19 +558,19 @@ for (k in 2:3) {
 
 The mixture model with $K$ components is given by
 \begin{align*}
-  h(x | \Theta) & = \sum_{k = 1}^K \pi_k f(x | \theta_k),
+  h(x | \Theta) & = \sum_{k = 1}^K \alpha_k f(x | \theta_k),
 \end{align*}
 where $h(\cdot | \cdot)$ is the mixture density, $\Theta$ the vector
-with all $\pi$ and $\theta$ parameters, and $f(y | \theta_k)$
+with all $\alpha$ and $\theta$ parameters, and $f(y | \theta_k)$
 the density of the vMF distribution with parameter $\theta_k$.
-Furthermore, the component weights $\pi_k$ are positive for all $k$
+Furthermore, the component weights $\alpha_k$ are positive for all $k$
 and sum to one.
 
 \subsection{Simulating mixtures of vMF distributions}
 
 This is straightforwardly achieved by first sampling class ids $z \in
-\{1, \ldots, K\}$ with the mixture class probabilities $\pi_1,
-\ldots, \pi_K$, and then sampling the data from the respective vMF
+\{1, \ldots, K\}$ with the mixture class probabilities $\alpha_1,
+\ldots, \alpha_K$, and then sampling the data from the respective vMF
 distributions with parameter $\theta_k$.
 
 \subsection{Estimating the parameters of mixtures of vMF distributions}\label{sec:estim-param-mixt}
@@ -587,8 +587,8 @@ the following steps:
 \begin{enumerate}
 \item Initialization: Either of the following two:
   \begin{enumerate}[(a)]
-  \item Assign values to $\pi_k$ and $\theta_k$ for $k=1,\ldots,K$,
-    where $\pi_k > 0$ and $\sum_{k=1}^K \pi_k = 1$ and $\theta_k \neq
+  \item Assign values to $\alpha_k$ and $\theta_k$ for $k=1,\ldots,K$,
+    where $\alpha_k > 0$ and $\sum_{k=1}^K \alpha_k = 1$ and $\theta_k \neq
     \theta_l$ for all $k \neq l$ and $k,l=1,\ldots,K$.
     
     Start the EM algorithm with an E-step.
@@ -607,12 +607,12 @@ the following steps:
     probabilities, the probabilities of belonging to a component
     conditional on the observed values, using
     \begin{align*}
-      p(k|x_i, \Theta) &\propto \pi_k f(x_i | \theta_k).
+      p(k|x_i, \Theta) &\propto \alpha_k f(x_i | \theta_k).
     \end{align*}
   \item[M-step:] Maximize the expected complete-data log-likelihood by
     determining separately for each $k$:
     \begin{align*}
-      \hat{\pi}_k &= \frac{1}{n} \sum_{i=1}^n p(k|x_i, \Theta),\\
+      \hat{\alpha}_k &= \frac{1}{n} \sum_{i=1}^n p(k|x_i, \Theta),\\
       \hat{\mu}_k &= \frac{\sum_{i=1}^n p(k|x_i, \Theta) x_i}{\|\sum_{i=1}^n p(k|x_i, \Theta) x_i\|},&
       - \frac{C_d'(\hat{\kappa}_k)}{C_d(\hat{\kappa}_k)} &=
       \frac{\|\sum_{i=1}^n p(k|x_i, \Theta) x_i\|}{\sum_{i=1}^n p(k|x_i, \Theta)}. 
@@ -765,7 +765,7 @@ X3 <- apply(cbind(c("$K = 3$", rep("", 2)), X3), 1, paste, collapse = "&")
   \centering
   \begin{tabular}{lccccrc}
     \hline
-    &$\pi$&\Sexpr{paste(colnames(x), collapse = "&")}&\multicolumn{1}{c}{$\kappa$}&BIC\\
+    &$\alpha$&\Sexpr{paste(colnames(x), collapse = "&")}&\multicolumn{1}{c}{$\kappa$}&BIC\\
     \hline
     \Sexpr{X2[1]}\\
     \Sexpr{X2[2]}\\
@@ -945,7 +945,7 @@ Bessel functions provided by \proglang{R} are based on the
 \pkg{SPECFUN} package of \citet{vMF:Cody:1993} and hence also provide
 the exponentially scaled modified Bessel function $e^{-\kappa}
 I_\nu(\kappa)$ (the scaling is motivated by the asymptotic expansion
-$I_\nu(\kappa) \sim e^\kappa (2\pi\kappa)^{-1/2} \sum_m \alpha_m(\nu)
+$I_\nu(\kappa) \sim e^\kappa (2\pi\kappa)^{-1/2} \sum_m a_m(\nu)
 / \kappa^m$ for $\kappa \to \infty$).  However, exponential scaling
 does not help in situations where $1 \ll \kappa \ll \nu$: e.g., for
 $\kappa = 6000$ and $\nu = 10000$, $H$ overflows whereas $I$
