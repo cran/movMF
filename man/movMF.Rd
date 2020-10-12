@@ -188,7 +188,7 @@ movMF(x, k, control = list(), ...)
   Clustering on the unit hypersphere using von Mises-Fisher
   distributions.
   \emph{Journal of Machine Learning Research}, \bold{6}, 1345--1382.
-  \url{http://jmlr.csail.mit.edu/papers/v6/banerjee05a.html}.
+  \url{https://jmlr.csail.mit.edu/papers/v6/banerjee05a.html}.
 
   G. Celeux, and G. Govaert (1992).
   A classification EM algorithm for clustering and two stochastic

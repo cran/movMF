@@ -18,7 +18,7 @@
 \setkeys{Gin}{width=\textwidth}
 
 \author{Kurt Hornik\\WU Wirtschaftsuniversit\"at Wien \And
-  Bettina Gr\"un\\Johannes Kepler Universit{\"at} Linz }
+  Bettina Gr\"un\\WU Wirtschaftsuniversit\"at Wien}
 
 \Plainauthor{Kurt Hornik, Bettina Gr\"un}
 
@@ -70,12 +70,11 @@
   URL: \url{http://statmath.wu.ac.at/~hornik/}
   
   Bettina Gr\"un\\
-  Institut f\"ur Angewandte Statistik / IFAS\\
-  Johannes Kepler Universit{\"at} Linz\\
-  Altenbergerstra{\ss }e 69\\
-  4040 Linz, Austria\\
-  E-mail: \email{Bettina.Gruen@jku.at}\\
-  URL: \url{http://ifas.jku.at/gruen/}
+  Institute for Statistics and Mathematics\\
+  Wirtschaftsuniversit{\"a}t Wien\\
+  Welthandelsplatz 1\\
+  1020 Wien, Austria\\
+  E-mail: \email{Bettina.Gruen@R-project.org}\\
 }
 <<echo=false, results=hide>>=
 set.seed(1234)
@@ -470,7 +469,7 @@ convergent iterative scheme for determining $\hat{\kappa}$.
 \subsection{Illustrative example: Household expenses}\label{sec:illustr-exampl-hous-data}
 
 To illustrate the use of the vMF distribution to model data on the
-sphere we use the \code{household} data set from package \pkg{HSAUR2}
+sphere we use the \code{household} data set from package \pkg{HSAUR3}
 \citep{vMF:Everitt+Hothorn:2013}. The data are part of a data set
 collected from a survey on household expenditures and give the
 expenses of 20 single men and 20 single women on four commodity
@@ -479,7 +478,7 @@ commodity groups (housing, food and service) to have 3-dimensional
 data which is easier to visualize.  
 %
 <<illustration1, echo=false>>=
-data("household", package = "HSAUR2")
+data("household", package = "HSAUR3")
 x <- as.matrix(household[, c(1:2, 4)])
 gender <- household$gender
 
@@ -1442,7 +1441,7 @@ library("tm")
 abstracts_titles <- 
   apply(useR_2008_abstracts[,c("Title", "Abstract")],
         1, paste, collapse = " ")
-useR_2008_abstracts_corpus <- Corpus(VectorSource(abstracts_titles))
+useR_2008_abstracts_corpus <- VCorpus(VectorSource(abstracts_titles))
 useR_2008_abstracts_DTM <- 
   DocumentTermMatrix(useR_2008_abstracts_corpus,
                      control = list(

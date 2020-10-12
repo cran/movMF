@@ -38,7 +38,7 @@ rmovMF(n, theta, alpha = 1)
   }
   where \eqn{{}_0F_1}{0F1} is a generalized hypergeometric function
   (e.g.,
-  \url{http://en.wikipedia.org/wiki/Generalized_hypergeometric_function})
+  \url{https://en.wikipedia.org/wiki/Generalized_hypergeometric_function})
   and related to the modified Bessel function \eqn{I_\nu} of the first
   kind via
   \deqn{{}_0F_1(; \nu+1; z^2/4) =
@@ -56,7 +56,7 @@ rmovMF(n, theta, alpha = 1)
   theta / ||theta||} (which however is not well-defined if \eqn{\theta =
   0}) and the \emph{concentration parameter} \eqn{\kappa = \|\theta\|}{
   kappa = ||theta||}, e.g., 
-  \url{http://en.wikipedia.org/wiki/Von_Mises\%E2\%80\%93Fisher_distribution}
+  \url{https://en.wikipedia.org/wiki/Von_Mises\%E2\%80\%93Fisher_distribution}
   (which also uses the un-normalized Haar measure on the unit sphere as
   the reference distribution, and hence includes the \dQuote{area} of
   the unit sphere as an additional normalizing constant).

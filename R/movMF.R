@@ -1,3 +1,64 @@
+get_solve_kappa <- function(kappa) {
+   kappa_solvers <-
+        c("Banerjee_et_al_2005",
+          "Tanabe_et_al_2007",
+          "Sra_2012",
+          "Song_et_al_2012",
+          "uniroot",
+          "Newton",
+          "Halley",
+          "hybrid",
+          "Newton_Fourier")
+    if(is.numeric(kappa)) {
+        ## CASE A: Use a common given value of kappa.
+        if (length(kappa) > 1)
+          warning("only the first element of 'kappa' is used for a common given kappa")
+        kappa_given <- kappa[1]
+        use_common_kappa <- TRUE
+        do_kappa <- function(norms, w, d, nu = 0)
+                rep.int(kappa_given, length(w))
+        df_kappa <- function(k) 0L
+    } else {
+        kappa <- as.list(kappa)
+        ## Should a common value be used or not?
+        pos <- match("common", names(kappa), nomatch = 0L)
+        if(pos > 0L) {
+            use_common_kappa <- identical(kappa[[pos]], TRUE)
+            kappa <- kappa[-pos]
+        } else {
+            use_common_kappa <- FALSE
+        }
+        if(length(kappa)) {
+            ## Solver specifications.
+            kname <- kappa[[1L]]
+            kargs <- kappa[-1L]
+            pos <- pmatch(tolower(kname), tolower(kappa_solvers))
+            if(is.na(pos))
+                stop("Invalid kappa solver.")
+            kappa <- kappa_solvers[pos]
+            kfun <- get(sprintf("solve_kappa_%s", kappa))
+            solve_kappa <- function(Rbar, d)
+                do.call(kfun, c(list(Rbar, d), kargs))
+        } else {
+            ## Default solver.
+            solve_kappa <- function(Rbar, d)
+                solve_kappa_Newton_Fourier(Rbar, d)
+        }
+        if(use_common_kappa) {
+            do_kappa <- function(norms, w, d, nu = 0) 
+                rep.int(solve_kappa(sum(norms) / (sum(w) + nu), d), length(w))
+            df_kappa <- function(k) 1L
+        } else {
+            do_kappa <- function(norms, w, d, nu = 0)
+                    solve_kappa(norms / (w + nu), d)
+            df_kappa <- function(k) k
+        }
+    }
+   list(do_kappa = do_kappa,
+        df_kappa = df_kappa,
+        use_common_kappa = use_common_kappa)
+}
+
 ## Try to estimate movMF via EM.
 
 movMF <-
@@ -52,67 +113,18 @@ function(x, k, control = list(), ...)
                            function(prob) rmultinom(1, 1, prob))))
 
     nu <- if (is.null(control$nu)) 0 else control$nu
-    
-    kappa_solvers <-
-        c("Banerjee_et_al_2005",
-          "Tanabe_et_al_2007",
-          "Sra_2012",
-          "Song_et_al_2012",
-          "uniroot",
-          "Newton",
-          "Halley",
-          "hybrid",
-          "Newton_Fourier")
-    kappa <- control$kappa
-    if(is.numeric(kappa)) {
-        ## CASE A: Use a common given value of kappa.
-        if (length(kappa) > 1)
-          warning("only the first element of 'kappa' is used for a common given kappa")
-        kappa_given <- kappa[1]
-        use_common_kappa <- TRUE
-        do_kappa <- function(norms, alpha)
-            rep.int(kappa_given, length(alpha))
-        df_kappa <- function(k) 0L
-    } else {
-        kappa <- as.list(kappa)
-        ## Should a common value be used or not?
-        pos <- match("common", names(kappa), nomatch = 0L)
-        if(pos > 0L) {
-            use_common_kappa <- identical(kappa[[pos]], TRUE)
-            kappa <- kappa[-pos]
-            if (length(nu) > 1)
-              warning("only the first element of 'nu' is used for common kappa")
-            nu <- nu[1]
-        } else {
-            use_common_kappa <- FALSE
-        }
-        if(length(kappa)) {
-            ## Solver specifications.
-            kname <- kappa[[1L]]
-            kargs <- kappa[-1L]
-            pos <- pmatch(tolower(kname), tolower(kappa_solvers))
-            if(is.na(pos))
-                stop("Invalid kappa solver.")
-            kappa <- kappa_solvers[pos]
-            kfun <- get(sprintf("solve_kappa_%s", kappa))
-            solve_kappa <- function(Rbar)
-                do.call(kfun, c(list(Rbar, d), kargs))
-        } else {
-            ## Default solver.
-            solve_kappa <- function(Rbar)
-                solve_kappa_Newton_Fourier(Rbar, d)
-        }
-        if(use_common_kappa) {
-            do_kappa <- function(norms, alpha) 
-                rep.int(solve_kappa(sum(norms) / (n + nu)), length(alpha))
-            df_kappa <- function(k) 1L
-        } else {
-            do_kappa <- function(norms, alpha)
-                solve_kappa(norms / (n * alpha + nu))
-            df_kappa <- function(k) k
-        }
-    }
 
+    solve_kappa <- get_solve_kappa(control$kappa)
+    do_kappa <- solve_kappa$do_kappa
+    df_kappa <- solve_kappa$df_kappa
+    use_common_kappa <- solve_kappa$use_common_kappa
+    
+    if (use_common_kappa) {
+        if (length(nu) > 1) 
+            warning("only the first element of 'nu' is used for common kappa")
+        nu <- nu[1]
+    }
+    
     ## Allow to specify "known" ids for fitting the respective movMF
     ## model by maximum likelihood.  This can be accomplished within our
     ## framework as follows:
@@ -177,23 +189,25 @@ function(x, k, control = list(), ...)
         G <- NULL
         P <- movMF_init(x, k, start[[run]])
         if (!use_common_kappa) {
-          if (length(nu) > 1 & length(nu) != ncol(P))
-            warning("nu is changed to have length", ncol(P))
-          nu <- rep_len(nu, ncol(P))
+            if (length(nu) > 1 & length(nu) != ncol(P))
+                warning("nu is changed to have length", ncol(P))
+            nu <- rep_len(nu, ncol(P))
         }
         L_old <- -Inf
         iter <- 0L
         logLiks[run] <- tryCatch({
             while(iter < maxiter) {
             ## M step.
-                alpha <- colMeans(P)
+                w <- colSums(P)
+                alpha <- w / n
                 while(any(alpha < minalpha)) {
                     if(verbose) 
                         message("*** Removing one component ***")
                     nok <- which.min(alpha)
                     P <- P[, -nok, drop = FALSE]
-                    if (!use_common_kappa)
-                      nu <- nu[-nok]
+                    if (!use_common_kappa) {
+                        nu <- nu[-nok]
+                    }
                     P <- do_P(P, log_row_sums(P))
                     alpha <- colMeans(P)
                     if(!is.null(G))
@@ -206,7 +220,7 @@ function(x, k, control = list(), ...)
                 M <- M / ifelse(norms > 0, norms, 1)
                 ## If a cluster contains only identical observations,
                 ## Rbar = 1.
-                kappa <- do_kappa(norms, alpha)
+                kappa <- do_kappa(norms, w, d, nu)
             
                 ## E step.
                 G <- cadd(skmeans:::g_tcrossprod(x, kappa * M),

@@ -11,3 +11,6 @@ S3method("predict", "movMF")
 S3method("print", "movMF")
 
 S3method("print", "rmovMF")
+
+export("FLXMCvMF")
+

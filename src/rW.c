@@ -24,7 +24,7 @@ void rW(int *n, double *kappa, int *m, double *y)
 	while(!done) {
 	    z = rbeta(d / 2., d / 2.);
 	    w = (1. - (1. + b) * z) / (1. - (1. - b) * z);
-	    u = runif(0., 1.);
+	    u = unif_rand();
 	    if(l * w + d * log(1. - x * w) - c >= log(u)) {
 		done = TRUE;
 	    }
