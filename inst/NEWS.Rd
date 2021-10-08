@@ -1,6 +1,11 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
+\section{Changes in version 0.2-6}{
+  \itemize{
+    \item Update URLs.
+  }
+}
 \section{Changes in version 0.2-5}{
   \itemize{
     \item Model driver added to extend package \pkg{flexmix}.
@@ -38,7 +43,7 @@
   \itemize{
     \item The package vignette has been published in the Journal of
     Statistical Software, Volume 58, Issue 10
-    (\url{https://www.jstatsoft.org/v58/i10}), and the paper should be
+    (\doi{10.18637/jss.v058.i10}), and the paper should be
     used as citation for the package, run \code{citation("movMF")} for
     details.
     \item In the calculation of 0F1 it is now ensured that summation is

@@ -67,7 +67,7 @@
   Welthandelsplatz 1\\
   1020 Wien, Austria\\
   E-mail: \email{Kurt.Hornik@R-project.org}\\
-  URL: \url{http://statmath.wu.ac.at/~hornik/}
+  URL: \url{https://statmath.wu.ac.at/~hornik/}
   
   Bettina Gr\"un\\
   Institute for Statistics and Mathematics\\
@@ -242,7 +242,7 @@ estimates. The \proglang{R} \citep{vMF:Team:2014} package \pkg{movMF}
 is presented in Section~\ref{sec:software} by describing the main
 fitting function \fct{movMF} in detail. The package is available from
 the Comprehensive \proglang{R} Archive Network at
-\url{http://CRAN.R-project.org/package=movMF}. Numerical issues when
+\url{https://CRAN.R-project.org/package=movMF}. Numerical issues when
 evaluating the density or determining the ML estimates are discussed in
 Section~\ref{sec:numerics}. An illustrative application of the package
 using the abstracts from the talks at ``use\proglang{R}!  2008'', the
@@ -470,7 +470,7 @@ convergent iterative scheme for determining $\hat{\kappa}$.
 
 To illustrate the use of the vMF distribution to model data on the
 sphere we use the \code{household} data set from package \pkg{HSAUR3}
-\citep{vMF:Everitt+Hothorn:2013}. The data are part of a data set
+\citep{vMF:Everitt+Hothorn:2018}. The data are part of a data set
 collected from a survey on household expenditures and give the
 expenses of 20 single men and 20 single women on four commodity
 groups. In the following we will focus only on three of those
@@ -961,7 +961,7 @@ One can use the Gauss continued fraction
   \frac{1}{2(\nu+2)/z + {}} \cdots
 \end{displaymath}
 for the ratio of modified Bessel functions
-(\url{http://dlmf.nist.gov/10.33.E1}) to compute $A$ as
+(\url{https://dlmf.nist.gov/10.33.E1}) to compute $A$ as
 \begin{displaymath}
   A_d(\kappa)
   = \frac{I_{d/2}(\kappa)}{I_{d/2-1}(\kappa)}
@@ -970,7 +970,7 @@ for the ratio of modified Bessel functions
   \frac{1}{(d+4)/\kappa + {}} \cdots
 \end{displaymath}
 \citep[Equation~4.3 in][]{vMF:Banerjee+Dhillon+Ghosh:2005}, using,
-e.g., Steed's method (e.g., \url{http://dlmf.nist.gov/3.10}) for
+e.g., Steed's method (e.g., \url{https://dlmf.nist.gov/3.10}) for
 evaluation.  However, as pointed out by
 \citet{vMF:Gautschi+Slavik:1978} and \citet{vMF:Tretter+Walster:1980}
 \citep[and, quite recently, re-iterated by][]{vMF:Song+Liu+Wang:2012},
