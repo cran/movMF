@@ -1,6 +1,13 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
+\section{Changes in version 0.2-7}{
+  \itemize{
+    \item Performance tweaks for random number generation from the vMF
+    distribution.
+  }
+}
+
 \section{Changes in version 0.2-6}{
   \itemize{
     \item Update URLs.

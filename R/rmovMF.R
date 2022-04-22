@@ -9,15 +9,18 @@ function(n, theta)
         y <- y / sqrt(rowSums(y ^ 2))
     }
     else if(d == 1) {
-        cbind((-1) ^ rbinom(n, 1, 1 / (1 + exp(2 * theta))))
+        y <- cbind((-1) ^ rbinom(n, 1, 1 / (1 + exp(2 * theta))))
     }
     else {
-        w <- rW(n, kappa, d)
-        v <- matrix(rnorm(n * (d - 1)), n, d - 1)
-        v <- v / sqrt(rowSums(v ^ 2))
+        ## <FIXME>
+        ## Explain in the package vignette eventually ...
         mu <- cbind(theta / kappa)
-        y <- tcrossprod(cbind(sqrt(1 - w ^ 2) * v, w),
-                        cbind(Null(mu), mu))
+        w <- rW(n, kappa, d)
+        z <- matrix(rnorm(n * d), n, d)
+        v <- z - tcrossprod(z %*% mu, mu)
+        v <- v / sqrt(rowSums(v ^ 2))
+        y <- tcrossprod(w, mu) + sqrt(1 - w^2) * v
+        ## </FIXME>
     }
 
     y
@@ -64,12 +67,4 @@ function(n, kappa, d)
        as.double(kappa),
        as.integer(d),
        y = double(n))$y
-}
-
-Null <-
-function(M)
-{
-    tmp <- qr(M)
-    set <- if(tmp$rank == 0) 1 : ncol(M) else - (1 : tmp$rank)
-    qr.Q(tmp, complete = TRUE)[, set, drop = FALSE]
 }
