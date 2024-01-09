@@ -1,13 +1,20 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
+\section{Changes in version 0.2-8}{
+  \itemize{
+    \item \pkg{corpus.useR.2008.abstracts} was removed as suggested
+    package and the dataset added to the package to ensure that the
+    vignette code can be successfully executed even if the package is
+    not available for installation.
+  }
+}
 \section{Changes in version 0.2-7}{
   \itemize{
     \item Performance tweaks for random number generation from the vMF
     distribution.
   }
 }
-
 \section{Changes in version 0.2-6}{
   \itemize{
     \item Update URLs.

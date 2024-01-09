@@ -1,5 +1,5 @@
 Package: movMF
-Version: 0.2-7
+Version: 0.2-8
 Encoding: UTF-8
 Title: Mixtures of von Mises-Fisher Distributions
 Authors@R: c(person("Kurt", "Hornik", role = c("aut", "cre"),
@@ -11,13 +11,12 @@ Description: Fit and simulate mixtures of von Mises-Fisher distributions.
 Depends: R (>= 3.0.0)
 Imports: skmeans (>= 0.2-10), clue, slam (>= 0.1-43), stats
 Suggests: lattice, tm (>= 0.7-5), vcd, SnowballC, HSAUR3, colorspace,
-        corpus.useR.2008.abstracts, flexmix (>= 2.3-17), methods
-Additional_repositories: https://datacube.wu.ac.at
+        flexmix (>= 2.3-17), methods
 License: GPL-2
 NeedsCompilation: yes
-Packaged: 2022-04-19 17:00:33 UTC; hornik
+Packaged: 2024-01-09 13:40:47 UTC; hornik
 Author: Kurt Hornik [aut, cre] (<https://orcid.org/0000-0003-4198-9911>),
   Bettina Grün [aut] (<https://orcid.org/0000-0001-7265-4773>)
 Maintainer: Kurt Hornik <Kurt.Hornik@R-project.org>
 Repository: CRAN
-Date/Publication: 2022-04-22 07:03:26 UTC
+Date/Publication: 2024-01-09 15:15:44 UTC

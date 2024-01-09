@@ -156,17 +156,8 @@ plotGlobe <- function(x, class, pars = NULL, main = "", theta = 0, phi = 0,
 }
 @ 
 
-<<corpus-package, echo=false, results=hide>>=
-if(!nzchar(system.file(package = "corpus.useR.2008.abstracts"))) {
-    templib <- tempfile(); dir.create(templib)
-    install.packages("corpus.useR.2008.abstracts", lib = templib,
-                     repos = "https://datacube.wu.ac.at/",
-                     type = "source")
-    data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts",
-         lib.loc = templib)
-} else {
-    data("useR_2008_abstracts", package = "corpus.useR.2008.abstracts")
-}
+<<corpus, echo=false, results=hide>>=
+data("useR_2008_abstracts", package = "movMF")
 @ 
 
 \begin{document}
@@ -1404,16 +1395,16 @@ In 2008 the ``use\proglang{R}! 2008'', the 3rd international
 total \Sexpr{nrow(useR_2008_abstracts)} abstracts were submitted and
 accepted for presentation at the conference. The abstracts with
 additional information such as title, author, session, and keywords
-are available in the \proglang{R} data package
+were originally made available in the \proglang{R} data package
 \pkg{corpus.useR.2008.abstracts} available from the repository at
-\url{https://datacube.wu.ac.at/}.
+\url{https://datacube.wu.ac.at/}. The dataset is also included in
+package \pkg{movMF}.
 
-The following code checks if the package is installed and if necessary
-installs it. Furthermore, the data contained in the package is loaded.
+The following code loads the data contained in package \pkg{movMF}.
 %
 <<eval=false>>=
-<<corpus-package>>
-@ 
+<<corpus>>
+@
 %
 Using the \pkg{tm} package \citep{vMF:Feinerer+Hornik+Meyer:2008,
   vMF:Feinerer:2012} the data can be pre-processed by (1) generating a
