@@ -11,7 +11,7 @@ movMF(x, k, control = list(), ...)
   \item{x}{a numeric data matrix, with rows corresponding to
     observations.  Standardized to unit row lengths if necessary.
     Can be a dense matrix, a
-    \link[slam:matrix]{simple triplet matrix}
+    \link[slam]{simple triplet matrix}
     (package \pkg{slam}), or a
     \link[Matrix:dgTMatrix-class]{dgTMatrix}
     (package \pkg{Matrix}).}

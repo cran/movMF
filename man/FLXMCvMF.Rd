@@ -2,20 +2,20 @@
 \alias{FLXMCvMF}
 \title{Flexmix Driver for Mixtures of von Mises-Fisher Distributions}
 \description{
-  This driver for \code{\link[flexmix:flexmix]{flexmix}} implements
+  This driver for \code{\link[flexmix]{flexmix}} implements
   estimation of mixtures of von Mises-Fisher distributions where the
-  data can be stored in a dense or a \link[slam:matrix]{simple triplet
-  matrix} (package \pkg{slam}) format.
+  data can be stored in a dense or a \link[slam]{simple triplet matrix}
+  (package \pkg{slam}) format.
 }
 \usage{
 FLXMCvMF(formula = . ~ ., kappa = NULL)
 }
 \arguments{
   \item{formula}{a formula which is interpreted relative to the formula
-    specified in the call to \code{\link[flexmix:flexmix]{flexmix}} using
-    \code{\link[stats:update.formula]{update.formula}}. Only the
+    specified in the call to \code{\link[flexmix]{flexmix}} using
+    \code{\link[stats]{update.formula}}.  Only the
     left-hand side (response) of the formula is used. Default is to use
-    the original \code{\link[flexmix:flexmix]{flexmix}} model
+    the original \code{\link[flexmix]{flexmix}} model
     formula.}
   \item{kappa}{see the \code{control} argument of \code{\link{movMF}}}.
 }
