@@ -1,6 +1,5 @@
 \name{useR_2008_abstracts}
 \alias{useR_2008_abstracts}
-\encoding{UTF-8}
 \docType{data}
 \title{useR! 2008 Abstracts}
 \description{

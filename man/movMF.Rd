@@ -44,10 +44,12 @@ movMF(x, k, control = list(), ...)
   variants as specified by control option \code{E} (specifying the
   E-step employed), with possible values \code{"softmax"} (default),
   \code{"hardmax"} or \code{"stochmax"} where the first two implement
-  algorithms soft-moVMF and hard-moVMF of Banerjee et al (2005).  For
+  algorithms soft-moVMF and hard-moVMF of
+  \bibcitet{movMF::Banerjee+Dhillon+Ghosh:2005}.  For 
   \code{"stochmax"}, class assignments are drawn from the posteriors for
-  each observation in the E-step as outlined as SEM in Celeux and
-  Govaert (1992). The stopping criterion for this algorithm is by
+  each observation in the E-step as outlined as SEM in
+  \bibcitet{movMF::Celeux+Govaert:1992}.
+  The stopping criterion for this algorithm is by
   default changed to not check for convergence (logical control option
   \code{converge}), but to return the parameters with the maximum
   likelihood encountered. \code{E} may be abbreviated.
@@ -67,34 +69,39 @@ movMF(x, k, control = list(), ...)
   methods are:
   \describe{
     \item{\code{"Banerjee_et_al_2005"}}{uses the approximation of
-      Banerjee et al (2005).}
+      \bibcitet{movMF::Banerjee+Dhillon+Ghosh:2005}.}
     \item{\code{"Tanabe_et_al_2007"}}{uses the fixed-point iteration of
-      Tanabe et al (2007) with starting point for \eqn{\kappa} in the
-      interval established by Tanabe et al (2007) implied by a given
+      \bibcitet{movMF::Tanabe+Fukumizu+Oba:2007} with starting point for
+      \eqn{\kappa} in the interval established by
+      \bibcitet{movMF::Tanabe+Fukumizu+Oba:2007} implied by a given 
       \code{c} with values in [0, 2]. The default is \code{c} = 1, the
       mid-point of the interval.}
     \item{\code{"Sra_2012"}}{uses two Newton steps as suggested in
-      Sra (2012) starting in the approximation of Banerjee et al (2005).}
+      \bibcitet{movMF::Sra:2012} starting in the approximation of
+      \bibcitet{movMF::Banerjee+Dhillon+Ghosh:2005}.}
     \item{\code{"Song_et_al_2012"}}{uses two Halley steps as
-      suggested in Song et al (2012) starting in the approximation of
-      Banerjee et al (2005).}
+      suggested in \bibcitet{movMF::Song+Liu+Wang:2012} starting in the
+      approximation of \bibcitet{movMF::Banerjee+Dhillon+Ghosh:2005}.}
     \item{\code{"uniroot"}}{uses a straightforward call to
-      \code{\link{uniroot}} with the bounds established in Hornik and
-	\enc{Grün}{Gruen} (2014).}
+      \code{\link{uniroot}} with the bounds established in
+      \bibcitet{movMF::Hornik+Grün:2014}.}
     \item{\code{"Newton"}}{uses a full Newton algorithm started in the
-      approximation of Hornik and \enc{Grün}{Gruen} (2014).}
+      approximation of \bibcitet{movMF::Hornik+Grün:2014}.}
     \item{\code{"Halley"}}{uses a full Halley algorithm started in the
-      approximation of Hornik and \enc{Grün}{Gruen} (2014).}
+      approximation of \bibcitet{movMF::Hornik+Grün:2014}.}
     \item{\code{"hybrid"}}{implements a combination of a
       derivative-based step (Newton or Halley) and a bisection step as
-      outlined in Press et al. (2002). The derivative-based step can be
+      outlined in \bibcitet{movMF::Press+Teukolsky+Vetterling:1992}.
+      The derivative-based step can be
       specified via the argument \code{step} which expects a function
       performing this step. Currently \code{step_Newton} and
       \code{step_Halley} (default) are available.}
     \item{\code{"Newton_Fourier"} (default)}{uses a variant of the
       Newton-Fourier method for strictly increasing concave functions as
-      for example given in Atkinson (1989, pp. 62--64). Concavity can
-      be established using Hornik and \enc{Grün}{Gruen} (2013).}
+      for example given in
+      \bibcitet{|movMF::Atkinson:1989|pp.\\\\\\sspace{}62--64}.
+      Concavity can be established using
+      \bibcitet{movMF::Hornik+Grün:2013}.}
   }
   The lower-cased version of the given \code{kappa} specification is
   matched against the lower-cased names of the available methods using
@@ -180,54 +187,16 @@ movMF(x, k, control = list(), ...)
   computing (the logarithms of) the normalizing constants.
 }
 \references{
-  K. E. Atkinson (1989).
-  \emph{An Introduction to Numerical Analysis.}
-  2nd edition. John Wiley & Sons.
-  
-  A. Banerjee, I. S. Dhillon, J. Ghosh, and S. Sra (2005).
-  Clustering on the unit hypersphere using von Mises-Fisher
-  distributions.
-  \emph{Journal of Machine Learning Research}, \bold{6}, 1345--1382.
-  \url{https://jmlr.csail.mit.edu/papers/v6/banerjee05a.html}.
-
-  G. Celeux, and G. Govaert (1992).
-  A classification EM algorithm for clustering and two stochastic
-  versions.
-  \emph{Computational Statistics & Data Analysis}, \bold{14}, 315--332.
-  \doi{10.1016/0167-9473(92)90042-E}.
-
-  K. Hornik, and B. \enc{Grün}{Gruen} (2013).
-  Amos-type bounds for modified Bessel function ratios.
-  \emph{Journal of Mathematical Analysis and Applications},
-  \bold{408}(1), 91--101.
-  \doi{10.1016/j.jmaa.2013.05.070}.
-
-  K. Hornik, and B. \enc{Grün}{Gruen} (2014).
-  On maximum likelihood estimation of the concentration
-  parameter of von Mises-Fisher distributions.
-  \emph{Computational Statistics}, \bold{29}, 945--957.
-  \doi{10.1007/s00180-013-0471-0}.
-  
-  W. H. Press, S. A. Teukolsky, W. T. Vetterling and Brian P. Flannery
-  (2002).
-  \emph{Numerical Recipes in C: The Art of Scientific Computing.}
-  2nd edition. Cambridge University Press.
-  
-  H. Song, J. Liu, and G. Wang.
-  High-order parameter approximation for von Mises-Fisher distributions.
-  \emph{Applied Mathematics and Computation}, \bold{218}, 11880--11890.
-  \doi{10.1016/j.amc.2012.05.050}.
-   
-  S. Sra (2012).
-  A short note on parameter approximation for von Mises-Fisher
-  distributions: and a fast implementation of \eqn{I_s(x)}.
-  \emph{Computational Statistics}, \bold{27}, 177--190.
-  \doi{10.1007/s00180-011-0232-x}.
-
-  A. Tanabe, K. Fukumizu, S. Oba, T. Takenouchi, and S. Ishii.
-  Parameter estimation for von Mises-Fisher distributions.
-  \emph{Computational Statistics}, \bold{22}, 145--157.
-  \doi{10.1007/s00180-007-0030-7}.
+  \bibshow{
+    movMF::Atkinson:1989,
+    movMF::Banerjee+Dhillon+Ghosh:2005,
+    movMF::Celeux+Govaert:1992,
+    movMF::Hornik+Grün:2013,
+    movMF::Hornik+Grün:2014,
+    movMF::Press+Teukolsky+Vetterling:1992,
+    movMF::Song+Liu+Wang:2012,
+    movMF::Sra:2012,
+    movMF::Tanabe+Fukumizu+Oba:2007}
 }
 \examples{
 ## Generate and fit a "small-mix" data set a la Banerjee et al.

@@ -65,17 +65,14 @@ rmovMF(n, theta, alpha = 1)
   distributions.
 
   \code{rmovMF} generates samples from finite mixtures of vMF
-  distributions, using Algorithm VM* in Wood (1994) for sampling from
-  the vMF distribution.
+  distributions, using Algorithm VM* in \bibcitet{movMF::Wood:1994} for
+  sampling from the vMF distribution.
 
   Arguments \code{theta} and \code{alpha} are recycled to a common
   number of mixture components.
 }
 \references{
-  A. T. A. Wood (1994).
-  Simulation of the von Mises Fisher distribution.
-  \emph{Communications in Statistics -- Simulation and Computation},
-  \bold{23}(1), 157--164.
+  \bibshow{movMF::Wood:1994}
 }
 \examples{
 ## To simulate from the vMF distribution with mean direction

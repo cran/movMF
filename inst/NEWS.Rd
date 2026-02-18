@@ -1,6 +1,17 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
+\section{Changes in version 0.2-10}{
+  \itemize{
+    \item Generate bibliographic citations and references from
+    bibentries.
+  }
+}
+\section{Changes in version 0.2-9}{
+  \itemize{
+    \item Improve Rd cross-references.
+  }
+}
 \section{Changes in version 0.2-8}{
   \itemize{
     \item \pkg{corpus.useR.2008.abstracts} was removed as suggested
