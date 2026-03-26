@@ -99,7 +99,7 @@ movMF(x, k, control = list(), ...)
     \item{\code{"Newton_Fourier"} (default)}{uses a variant of the
       Newton-Fourier method for strictly increasing concave functions as
       for example given in
-      \bibcitet{|movMF::Atkinson:1989|pp.\\\\\\sspace{}62--64}.
+      \bibcitet{|movMF::Atkinson:1989|pages 62--64}.
       Concavity can be established using
       \bibcitet{movMF::Hornik+Grün:2013}.}
   }

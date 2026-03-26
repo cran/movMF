@@ -1,6 +1,11 @@
 \name{NEWS}
 \title{News for Package \pkg{movMF}}
 \encoding{UTF-8}
+\section{Changes in version 0.2-11}{
+  \itemize{
+    \item No user-visible changes.
+  }
+}
 \section{Changes in version 0.2-10}{
   \itemize{
     \item Generate bibliographic citations and references from
